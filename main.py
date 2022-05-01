@@ -19,7 +19,7 @@ bot_token = os.environ.get('TG_BOT_TOKEN', '')
 max_text_message = int(os.environ.get('MAX_TEXT_MESSAGE', 256))
 time_out_email_checker = int(os.environ.get('TIME_OUT_EMAIL_CHECKER', 5))
 time_out_error = int(os.environ.get('TIME_OUT_ERROR', 60))
-allowed_users = set(json.loads(os.environ.get('ALLOWED_USERS_ID', '')))
+allowed_users = set(json.loads(os.environ.get('ALLOWED_USERS_ID', '[]')))
 #
 users_id = set()
 load_users(users_id)

@@ -5,9 +5,7 @@ import email
 import imaplib
 import traceback
 from dateutil import parser
-from email.header import Header, decode_header, make_header
-from email.policy import default as default_policy
-from unittest import result
+from email.header import decode_header, make_header
 
 
 class MsgInfo:

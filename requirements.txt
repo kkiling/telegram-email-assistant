@@ -1,0 +1,4 @@
+pyTelegramBotAPI==4.5.0
+python-dotenv==0.20.0
+imgkit==1.2.2
+python-dateutil==2.8.1
