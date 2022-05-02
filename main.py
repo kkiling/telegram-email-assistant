@@ -30,8 +30,6 @@ run_reading_progress = {}
 
 if not os.path.isdir("data"):
     os.mkdir("data")
-if not os.path.isdir("data/img"):
-    os.mkdir("data/img")
 
 def read_email():
     while True:
@@ -132,7 +130,3 @@ thread = Thread(target=read_email)
 thread.start()
 #
 bot.infinity_polling()
-
-11264545
-
-"A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: file  of size 11264545 bytes is too big for a photo"

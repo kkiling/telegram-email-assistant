@@ -4,13 +4,10 @@ import re
 import email
 import imaplib
 import traceback
+from PIL import Image
 from dateutil import parser
 from email.header import decode_header, make_header
-
-from PIL import Image
-import PIL
-import os
-import glob
+import pathlib
 
 class MsgInfo:
     msg_id = ""
@@ -86,12 +83,31 @@ def get_name_and_email(value):
 def html_to_png(msg_id, text_html):
     if text_html == "":
         return None
+
+    msg_folder = f"data/{msg_id.decode('utf-8')}"
+    if not os.path.isdir(msg_folder):
+        os.mkdir(msg_folder)
+
     id = msg_id.decode('utf-8')
-    filename = f'data/img/{id}.png'
+    filename = f'{msg_folder}/{id}.png'
+    
     if os.path.exists(filename):
         return filename
+        
     try:
-        imgkit.from_string(text_html, filename)
+        src_folder = pathlib.Path(__file__).parent.resolve()
+        src_folder = os.path.join(src_folder, msg_folder)
+        text_html = text_html.replace('src="cid:', f'src="{src_folder}/')
+
+        html_filename = f'{msg_folder}/index.html'
+        with open(html_filename, "w", encoding='utf-8') as text_file:
+            text_file.write(text_html)
+
+        options = {
+            'format': 'png',
+            'enable-local-file-access': None
+        }
+        imgkit.from_string(text_html, filename, options)
 
         picture = Image.open(filename)
         picture.save(filename)
@@ -196,9 +212,28 @@ def read_unseen_emails(server, login, password):
     finally:
         imap.close()
         imap.logout()
+        
+def _save_attachment_file(msg_folder, part):
+    filename, encoding = decode_header(part.get_filename())[0]
+    if(encoding is None):
+        open(msg_folder + filename, 'wb').write(part.get_payload(decode=True))
+        return filename
+    else:
+        filename = filename.decode(encoding)
+        open(msg_folder + filename, 'wb').write(part.get_payload(decode=True))
+        return filename
 
+def _save_inline_file(msg_folder, part):
+    content_id = str(part.get("Content-ID"))
+    content_id = _regexp_getvalue(content_id, r"\<(.*?)\>")
+    #content_id = f"cid:{content_id}"
+    open(msg_folder + content_id, 'wb').write(part.get_payload(decode=True))
 
 def read_email_body(server, login, password, msg_id):
+    msg_folder = f"data/{msg_id.decode('utf-8')}/"
+    if not os.path.isdir(msg_folder):
+        os.mkdir(msg_folder)
+
     imap = imaplib.IMAP4_SSL(server)
     imap.login(login, password)
     try:
@@ -222,19 +257,19 @@ def read_email_body(server, login, password, msg_id):
             result.body = []
             for part in msg.walk():
                 content_type = part.get_content_type()
-                content_disposition = str(part.get("Content-Disposition"))
+                content_disposition = part.get_content_disposition()
+                
                 body = None
                 try:
                     body = part.get_payload(decode=True).decode()
                 except:
                     pass
-                if "attachment" in content_disposition:
-                    # download attachment
-                    filename = part.get_filename()
-                    # payload = part.get_payload(decode=True)
-                    if filename:
-                        result.body.append(MsgAttachment(
-                            msg_id, content_type, filename))
+                part.get_content_disposition
+                if content_disposition != None and "attachment" in content_disposition:
+                    filename = _save_attachment_file(msg_folder, part)
+                    result.body.append(MsgAttachment(msg_id, content_type, filename))
+                elif content_disposition != None and "inline" in content_disposition:
+                    _save_inline_file(msg_folder, part)
                 elif body != None:
                     result.body.append(MsgBody(msg_id, content_type, body))
         else:
