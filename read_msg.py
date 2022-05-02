@@ -7,6 +7,10 @@ import traceback
 from dateutil import parser
 from email.header import decode_header, make_header
 
+from PIL import Image
+import PIL
+import os
+import glob
 
 class MsgInfo:
     msg_id = ""
@@ -83,11 +87,14 @@ def html_to_png(msg_id, text_html):
     if text_html == "":
         return None
     id = msg_id.decode('utf-8')
-    if not os.path.isdir("img"):
-        os.mkdir("img")
-    filename = f'img/{id}.png'
+    filename = f'data/img/{id}.png'
+    if os.path.exists(filename):
+        return filename
     try:
-        imgkit.from_string(text_html, f'img/{id}.png')
+        imgkit.from_string(text_html, filename)
+
+        picture = Image.open(filename)
+        picture.save(filename)
     except:
         pass
     if os.path.exists(filename):

@@ -28,6 +28,10 @@ users_id = set(users_id) & set(allowed_users)
 bot = telebot.TeleBot(bot_token)
 run_reading_progress = {}
 
+if not os.path.isdir("data"):
+    os.mkdir("data")
+if not os.path.isdir("data/img"):
+    os.mkdir("data/img")
 
 def read_email():
     while True:
@@ -127,4 +131,8 @@ def query_handler(call):
 thread = Thread(target=read_email)
 thread.start()
 #
-bot.polling(none_stop=False)
+bot.infinity_polling()
+
+11264545
+
+"A request to the Telegram API was unsuccessful. Error code: 400. Description: Bad Request: file  of size 11264545 bytes is too big for a photo"
