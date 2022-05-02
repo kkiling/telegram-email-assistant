@@ -58,14 +58,17 @@ def read_mail_time(chatId, msg_id):
     fromEmail = get_from_email(msg_id.decode('utf-8'))
     message = bot.send_message(chatId, f'⌛ Reading a mail from {fromEmail}')
     index = 0
+    seconds = 0
     while msg_id in run_reading_progress and run_reading_progress[msg_id] == True:
         sleep(0.1)
         index += 1
         text = ''
         if index % 10 == 0:
-            text = f'⏳ Reading a mail from {fromEmail}'
+            seconds += 1
+            text = f'⏳ Reading a mail from {fromEmail} ({seconds} sec)'
         if index % 20 == 0:
-            text = f'⌛ Reading a mail from {fromEmail}'
+            seconds += 1
+            text = f'⌛ Reading a mail from {fromEmail} ({seconds} sec)'
         if text != "":
             bot.edit_message_text(
                 chat_id=chatId, message_id=message.id, text=text)
@@ -106,7 +109,6 @@ def query_handler(call):
     run_reading_progress = {msg_id: True}
     thread = Thread(target=read_mail_time, args=(id, msg_id,))
     thread.start()
-
     # Read
     result, isError = read_email_body(server, login, password, msg_id)
 
@@ -115,14 +117,19 @@ def query_handler(call):
         if isError:
             bot.send_message(id, '❗ An error occurred while reading email')
             return
-        text, img = print_email_body(result, max_text_message)
+        text, img, attachment = print_email_body(result, max_text_message)
 
         if img != None:
             img_file = open(img, 'rb')
             bot.send_photo(id, img_file, caption=text, parse_mode='HTML')
         else:
             bot.send_message(id, text, parse_mode='HTML')
-        run_reading_progress[msg_id] = False
+
+        for at in attachment:
+            doc_file = open(at, 'rb')
+            bot.send_document(id, doc_file)
+
+    run_reading_progress[msg_id] = False
 
 
 #

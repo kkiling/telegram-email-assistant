@@ -4,10 +4,12 @@ import re
 import email
 import imaplib
 import traceback
+import pathlib
+from threading import Thread
 from PIL import Image
 from dateutil import parser
 from email.header import decode_header, make_header
-import pathlib
+
 
 class MsgInfo:
     msg_id = ""
@@ -40,11 +42,13 @@ class MsgAttachment:
     msg_id = ""
     contentType = ""
     fileName = ""
+    filePath = ""
 
-    def __init__(self, msg_id, contentType, fileName):
+    def __init__(self, msg_id, contentType, fileName, filePath):
         self.msg_id = msg_id
         self.contentType = contentType
         self.fileName = fileName
+        self.filePath = filePath
 
 
 def _msg_subject(msg):
@@ -97,20 +101,32 @@ def html_to_png(msg_id, text_html):
     try:
         src_folder = pathlib.Path(__file__).parent.resolve()
         src_folder = os.path.join(src_folder, msg_folder)
+        have_cid = 'src="cid:' in text_html
         text_html = text_html.replace('src="cid:', f'src="{src_folder}/')
 
-        html_filename = f'{msg_folder}/index.html'
-        with open(html_filename, "w", encoding='utf-8') as text_file:
-            text_file.write(text_html)
+        #html_filename = f'{msg_folder}/index.html'
+        #with open(html_filename, "w", encoding='utf-8') as text_file:
+        #    text_file.write(text_html)
 
-        options = {
-            'format': 'png',
-            'enable-local-file-access': None
-        }
-        imgkit.from_string(text_html, filename, options)
+        # Try with local files
+        if have_cid:
+            options = {
+                'format': 'png',
+                'enable-local-file-access': None,
+            }
+            thread = Thread(target=imgkit.from_string, args=(text_html, filename, options,))
+            thread.start()
+            thread.join(60)
 
-        picture = Image.open(filename)
-        picture.save(filename)
+        # Try without local files
+        if not os.path.exists(filename):
+            thread = Thread(target=imgkit.from_string, args=(text_html, filename))
+            thread.start()
+            thread.join(60)
+
+        if os.path.exists(filename):
+            picture = Image.open(filename)
+            picture.save(filename)
     except:
         pass
     if os.path.exists(filename):
@@ -131,16 +147,22 @@ def print_email_body(email: MsgInfo, max_text_message):
                 return f"❗ Undefined  msg content type: {msg.contentType}"
     img = None
     text = print_email(email) + "\n\n"
-    if text_html != "" and (len(text_plain) > max_text_message or text_plain == ""):
+
+    #save_html_as_image = text_html != "" and (len(text_plain) > max_text_message or text_plain == "")
+    #if save_html_as_image or 'src="cid:' in text_html:
+    if text_html != "":
         img = html_to_png(email.msg_id, text_html)
     else:
         text += text_plain
 
     # Attachment
+    attachment = []
     for msg in email.body:
         if type(msg) is MsgAttachment:
             text += f"\n📎 {msg.fileName}"
-    return text, img
+            attachment.append(msg.filePath)
+
+    return text, img, attachment
 
 
 def print_email(email: MsgInfo):
@@ -266,10 +288,17 @@ def read_email_body(server, login, password, msg_id):
                     pass
                 part.get_content_disposition
                 if content_disposition != None and "attachment" in content_disposition:
+
                     filename = _save_attachment_file(msg_folder, part)
-                    result.body.append(MsgAttachment(msg_id, content_type, filename))
+                    result.body.append(MsgAttachment(msg_id, content_type, filename, msg_folder + filename))
+
                 elif content_disposition != None and "inline" in content_disposition:
                     _save_inline_file(msg_folder, part)
+
+                    # Save inline file as attachment
+                    filename = _save_attachment_file(msg_folder, part)
+                    result.body.append(MsgAttachment(msg_id, content_type, filename, msg_folder + filename))
+
                 elif body != None:
                     result.body.append(MsgBody(msg_id, content_type, body))
         else:
