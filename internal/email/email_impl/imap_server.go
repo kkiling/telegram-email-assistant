@@ -1,12 +1,13 @@
 package email_impl
 
 import (
+	"fmt"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/mail"
-	"github.com/kiling91/telegram-email-assistant/pkg/email"
-	"github.com/kiling91/telegram-email-assistant/pkg/factory"
-	"github.com/kiling91/telegram-email-assistant/pkg/types"
+	"github.com/kiling91/telegram-email-assistant/internal/email"
+	"github.com/kiling91/telegram-email-assistant/internal/factory"
+	"github.com/kiling91/telegram-email-assistant/internal/types"
 	"io"
 	"io/ioutil"
 	"log"
@@ -98,13 +99,13 @@ func (s *service) login(user *types.EmailUser) (*client.Client, error) {
 	// Connect to server
 	c, err := client.DialTLS(user.ImapServer, nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("error connect to imap server: %w", err)
 	}
 	log.Println("Connected")
 
 	// Login
 	if err := c.Login(user.Login, user.Password); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("error login in imap server: %w", err)
 	}
 	log.Println("Logged in")
 
@@ -112,26 +113,25 @@ func (s *service) login(user *types.EmailUser) (*client.Client, error) {
 }
 
 func (s *service) getUnseenEmails(client *client.Client) ([]uint32, error) {
-	// Select INBOX
 	mbox, err := client.Select("INBOX", true)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("error select inbox: %w", err)
 	}
 	log.Println("Flags for INBOX:", mbox.Flags)
 
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{"\\Seen"}
-	uids, err := client.Search(criteria)
+	UIDs, err := client.Search(criteria)
 	if err != nil {
-		log.Println(err)
-		return []uint32{}, err
+		return nil, fmt.Errorf("error search mail: %w", err)
 	}
-	return uids, nil
+
+	return UIDs, nil
 }
 
-func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) {
+func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) {
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(uids...)
+	seqSet.AddNum(UIDs...)
 
 	items := []imap.FetchItem{imap.FetchEnvelope}
 
@@ -155,22 +155,24 @@ func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) {
 
 func (s *service) ReadUnseenEmails(user *types.EmailUser) error {
 	c, err := s.login(user)
-	// Don't forget to logout
-	defer c.Logout()
+	defer func(c *client.Client) {
+		err := c.Logout()
+		if err != nil {
+			log.Println("error logout from imap server: %w", err)
+		}
+	}(c)
+
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// Select INBOX
-	uids, err := s.getUnseenEmails(c)
+	UIDs, err := s.getUnseenEmails(c)
 	if err != nil {
 		log.Fatal(err)
 	}
-	s.readEmailEnvelope(c, uids...)
 
-	/*err = s.readEmailBody(c, 87)
-	if err != nil {
-		log.Fatal(err)
-	}*/
+	s.readEmailEnvelope(c, UIDs...)
+
 	return nil
 }

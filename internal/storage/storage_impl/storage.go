@@ -1,9 +1,9 @@
 package storage_impl
 
 import (
-	"github.com/kiling91/telegram-email-assistant/pkg/factory"
-	"github.com/kiling91/telegram-email-assistant/pkg/storage"
-	"github.com/kiling91/telegram-email-assistant/pkg/types"
+	"github.com/kiling91/telegram-email-assistant/internal/factory"
+	"github.com/kiling91/telegram-email-assistant/internal/storage"
+	"github.com/kiling91/telegram-email-assistant/internal/types"
 )
 
 type service struct {

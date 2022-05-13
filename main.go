@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/kiling91/telegram-email-assistant/pkg/factory/factory_impl"
-	"github.com/kiling91/telegram-email-assistant/pkg/types"
+	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
+	"github.com/kiling91/telegram-email-assistant/internal/types"
 	"log"
 )
 

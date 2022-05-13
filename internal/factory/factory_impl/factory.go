@@ -1,11 +1,11 @@
 package factory_impl
 
 import (
-	"github.com/kiling91/telegram-email-assistant/pkg/email"
-	"github.com/kiling91/telegram-email-assistant/pkg/email/email_impl"
-	"github.com/kiling91/telegram-email-assistant/pkg/factory"
-	"github.com/kiling91/telegram-email-assistant/pkg/storage"
-	"github.com/kiling91/telegram-email-assistant/pkg/storage/storage_impl"
+	"github.com/kiling91/telegram-email-assistant/internal/email"
+	"github.com/kiling91/telegram-email-assistant/internal/email/email_impl"
+	"github.com/kiling91/telegram-email-assistant/internal/factory"
+	"github.com/kiling91/telegram-email-assistant/internal/storage"
+	"github.com/kiling91/telegram-email-assistant/internal/storage/storage_impl"
 )
 
 type service struct {
