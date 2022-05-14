@@ -186,7 +186,7 @@ func (s *service) readEmailBody(client *client.Client, emailUser string, msgUID 
 
 		switch h := p.Header.(type) {
 		case *mail.InlineHeader:
-			contentType, _, err := h.ContentType()
+			contentType, params, err := h.ContentType()
 			if err != nil {
 				return nil, err
 			}
@@ -199,6 +199,7 @@ func (s *service) readEmailBody(client *client.Client, emailUser string, msgUID 
 				b, _ := ioutil.ReadAll(p.Body)
 				result.TextHtml = string(b)
 			default:
+
 				contentDisposition, contentDispositionParams, _ := h.ContentDisposition()
 				if contentDisposition == "inline" {
 					// This is an inline
@@ -208,9 +209,11 @@ func (s *service) readEmailBody(client *client.Client, emailUser string, msgUID 
 						return nil, err
 					}
 					result.InlineFiles = append(result.InlineFiles, &email.InlineFile{
-						FileName: fileName,
-						FilePath: filePath,
+						FileName:     fileName,
+						FilePath:     filePath,
+						AttachmentId: h.Get("X-Attachment-Id"),
 					})
+					log.Println(params)
 				} else {
 					log.Printf("Unknown contentDisposition: %s", contentDisposition)
 					log.Printf("Unknown contentType: %s", contentType)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
+	"log"
 )
 
 func main() {
@@ -31,8 +32,9 @@ func main() {
 		log.Fatalln(err)
 	}*/
 
-	_, err := imap.ReadEmailBody(context.Background(), user, 37)
+	msg, err := imap.ReadEmailBody(context.Background(), user, 37)
 	if err != nil {
 		return
 	}
+	log.Println(msg)
 }

@@ -22,8 +22,9 @@ type Message struct {
 }
 
 type InlineFile struct {
-	FileName string
-	FilePath string
+	AttachmentId string
+	FileName     string
+	FilePath     string
 }
 
 type AttachmentFile struct {
