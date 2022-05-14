@@ -32,9 +32,17 @@ func main() {
 		log.Fatalln(err)
 	}*/
 
-	msg, err := imap.ReadEmailBody(context.Background(), user, 37)
+	msg, err := imap.ReadEmail(context.Background(), user, 37)
 	if err != nil {
 		return
 	}
 	log.Println(msg)
+
+	pnt := fact.PrintMsg()
+	text, err := pnt.PrintMsgWithBody(msg)
+
+	if err != nil {
+		return
+	}
+	log.Printf("%v", text)
 }

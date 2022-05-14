@@ -8,19 +8,6 @@ type ImapUser struct {
 	Password   string
 }
 
-type Message struct {
-	// The message unique identifier. It must be greater than or equal to 1.
-	Uid uint32
-	// The message date.
-	Date time.Time
-	// The message subject.
-	Subject string
-	// From header addresses.
-	From string
-	// The message senders.
-	To string
-}
-
 type InlineFile struct {
 	AttachmentId string
 	FileName     string
@@ -32,8 +19,28 @@ type AttachmentFile struct {
 	FilePath string
 }
 
-type MessageWithBody struct {
-	Message
+type Message struct {
+	Uid      uint32
+	Envelope *MessageEnvelope
+	Body     *MessageBody
+}
+
+type MessageEnvelope struct {
+	// The message unique identifier. It must be greater than or equal to 1.
+	Uid uint32
+	// The message date.
+	Date time.Time
+	// The message subject.
+	Subject string
+	// From header addresses.
+	FromName    string
+	FromAddress string
+	// The message senders.
+	ToName    string
+	ToAddress string
+}
+
+type MessageBody struct {
 	TextPlain       string
 	TextHtml        string
 	InlineFiles     []*InlineFile

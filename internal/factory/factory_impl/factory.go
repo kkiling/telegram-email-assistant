@@ -3,13 +3,16 @@ package factory_impl
 import (
 	"github.com/kiling91/telegram-email-assistant/internal/config"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
-	"github.com/kiling91/telegram-email-assistant/internal/email/imapmsg"
+	"github.com/kiling91/telegram-email-assistant/internal/email/imap_msg"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
+	printmsg "github.com/kiling91/telegram-email-assistant/internal/print_msg"
+	telegrammsg "github.com/kiling91/telegram-email-assistant/internal/print_msg/telegram_msg"
 )
 
 type fact struct {
 	config    *config.Config
 	imapEmail email.ReadEmail
+	printMsg  printmsg.PrintMsg
 }
 
 func NewFactory() factory.Factory {
@@ -28,4 +31,11 @@ func (f *fact) ImapEmail() email.ReadEmail {
 		f.imapEmail = imapmsg.NewReadEmail(f)
 	}
 	return f.imapEmail
+}
+
+func (f *fact) PrintMsg() printmsg.PrintMsg {
+	if f.printMsg == nil {
+		f.printMsg = telegrammsg.NewPrintEmail(f)
+	}
+	return f.printMsg
 }
