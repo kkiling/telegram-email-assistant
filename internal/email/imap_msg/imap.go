@@ -90,9 +90,9 @@ func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]em
 	return result, nil
 }
 
-func (s *service) saveFile(fileName string, body io.Reader, to string, msgUID uint32) (string, error) {
+func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID uint32) (string, error) {
 	cfg := s.fact.Config()
-	newPath, err := common.CreateFolderForEmail(cfg.FileStorageDir, to, msgUID)
+	newPath, err := common.CreateFolderForEmail(cfg.FileStorageDir, user, msgUID)
 	if err != nil {
 		return "", err
 	}
@@ -107,7 +107,7 @@ func (s *service) saveFile(fileName string, body io.Reader, to string, msgUID ui
 	return filePath, nil
 }
 
-func (s *service) processReadBody(ctx context.Context, mr *mail.Reader, to string, msgUID uint32) (*email.MessageBody, error) {
+func (s *service) processReadBody(ctx context.Context, mr *mail.Reader, user string, msgUID uint32) (*email.MessageBody, error) {
 
 	msgBody := email.MessageBody{
 		TextHtml:        "",
@@ -140,19 +140,20 @@ func (s *service) processReadBody(ctx context.Context, mr *mail.Reader, to strin
 				b, _ := ioutil.ReadAll(p.Body)
 				msgBody.TextHtml = string(b)
 			default:
-
 				contentDisposition, contentDispositionParams, _ := h.ContentDisposition()
 				if contentDisposition == "inline" {
 					// This is an inline
 					fileName := contentDispositionParams["filename"]
-					filePath, err := s.saveFile(fileName, p.Body, to, msgUID)
+					attachmentId := h.Get("X-Attachment-Id")
+
+					filePath, err := s.saveFile(attachmentId, p.Body, user, msgUID)
 					if err != nil {
 						return nil, err
 					}
 					msgBody.InlineFiles = append(msgBody.InlineFiles, &email.InlineFile{
 						FileName:     fileName,
 						FilePath:     filePath,
-						AttachmentId: h.Get("X-Attachment-Id"),
+						AttachmentId: attachmentId,
 					})
 					log.Println(params)
 				} else {
@@ -163,7 +164,7 @@ func (s *service) processReadBody(ctx context.Context, mr *mail.Reader, to strin
 		case *mail.AttachmentHeader:
 			// This is an attachment
 			fileName, _ := h.Filename()
-			filePath, err := s.saveFile(fileName, p.Body, to, msgUID)
+			filePath, err := s.saveFile(fileName, p.Body, user, msgUID)
 			if err != nil {
 				return nil, err
 			}
@@ -178,7 +179,6 @@ func (s *service) processReadBody(ctx context.Context, mr *mail.Reader, to strin
 }
 
 func (s *service) processReadEnvelope(uid uint32, mr *mail.Reader) (*email.MessageEnvelope, error) {
-
 	msgEnvelope := email.MessageEnvelope{
 		Uid: uid,
 	}
@@ -214,7 +214,7 @@ func (s *service) processReadEnvelope(uid uint32, mr *mail.Reader) (*email.Messa
 	return &msgEnvelope, nil
 }
 
-func (s *service) readEmailBody(ctx context.Context, client *client.Client, to string, msgUID uint32) (*email.Message, error) {
+func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, msgUID uint32) (*email.Message, error) {
 	// Select INBOX
 	mbox, err := client.Select("INBOX", false)
 	if err != nil {
@@ -260,7 +260,7 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, to s
 		return nil, err
 	}
 
-	msgBody, err := s.processReadBody(ctx, mr, to, msgUID)
+	msgBody, err := s.processReadBody(ctx, mr, user, msgUID)
 	if err != nil {
 		return nil, err
 	}

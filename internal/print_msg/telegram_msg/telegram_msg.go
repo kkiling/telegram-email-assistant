@@ -55,14 +55,14 @@ func (s *service) needDrawHtml(msg *email.Message) bool {
 	return false
 }
 
-func (s *service) PrintMsgWithBody(msg *email.Message) (*printmsg.FormattedMsg, error) {
+func (s *service) PrintMsgWithBody(msg *email.Message, user string) (*printmsg.FormattedMsg, error) {
 	text := s.PrintMsgEnvelope(msg.Envelope)
 	img := ""
 	attachment := make([]string, 0)
 
 	if s.needDrawHtml(msg) {
 		cfg := s.fact.Config()
-		dir, err := common.CreateFolderForEmail(cfg.FileStorageDir, msg.Envelope.ToAddress, msg.Uid)
+		dir, err := common.CreateFolderForEmail(cfg.FileStorageDir, user, msg.Uid)
 		if err != nil {
 			return nil, err
 		}

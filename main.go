@@ -39,7 +39,7 @@ func main() {
 	log.Println(msg)
 
 	pnt := fact.PrintMsg()
-	text, err := pnt.PrintMsgWithBody(msg)
+	text, err := pnt.PrintMsgWithBody(msg, user.Login)
 
 	if err != nil {
 		return

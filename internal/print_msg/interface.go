@@ -10,5 +10,5 @@ type FormattedMsg struct {
 
 type PrintMsg interface {
 	PrintMsgEnvelope(msg *email.MessageEnvelope) string
-	PrintMsgWithBody(msg *email.Message) (*FormattedMsg, error)
+	PrintMsgWithBody(msg *email.Message, user string) (*FormattedMsg, error)
 }

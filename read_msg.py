@@ -114,7 +114,7 @@ def html_to_png(msg_id, text_html):
                 'format': 'png',
                 'enable-local-file-access': None,
             }
-            thread = Thread(target=imgkit.from_string, args=(text_html, filename, options,))
+            thread = Thread(target=imgkit.from_file(), args=(text_html, filename, options,))
             thread.start()
             thread.join(60)
 
