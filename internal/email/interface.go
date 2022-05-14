@@ -1,7 +1,8 @@
 package email
 
-import "github.com/kiling91/telegram-email-assistant/internal/types"
+import "context"
 
-type ImapServer interface {
-	ReadUnseenEmails(user *types.EmailUser) error
+type ReadEmail interface {
+	ReadUnseenEmails(ctx context.Context, user *ImapUser) ([]Message, error)
+	ReadEmailBody(ctx context.Context, user *ImapUser, msgUID uint32) (*MessageWithBody, error)
 }

@@ -1,15 +1,15 @@
 package main
 
 import (
+	"context"
+	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
-	"github.com/kiling91/telegram-email-assistant/internal/types"
-	"log"
 )
 
 func main() {
 	fact := factory_impl.NewFactory()
 
-	user := &types.EmailUser{
+	user := &email.ImapUser{
 		ImapServer: "imap.yandex.ru:993",
 		Login:      "kirillkiling@yandex.ru",
 		Password:   "zxishjxtaufdfnvk",
@@ -25,9 +25,14 @@ func main() {
 		log.Fatalln(err)
 	}*/
 
-	imap := fact.ImapServer()
-	err := imap.ReadUnseenEmails(user)
+	imap := fact.ImapEmail()
+	/*emails, err := imap.ReadUnseenEmails(user)
 	if err != nil {
 		log.Fatalln(err)
+	}*/
+
+	_, err := imap.ReadEmailBody(context.Background(), user, 37)
+	if err != nil {
+		return
 	}
 }

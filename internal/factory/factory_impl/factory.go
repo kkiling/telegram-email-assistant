@@ -1,32 +1,31 @@
 package factory_impl
 
 import (
+	"github.com/kiling91/telegram-email-assistant/internal/config"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
-	"github.com/kiling91/telegram-email-assistant/internal/email/email_impl"
+	"github.com/kiling91/telegram-email-assistant/internal/email/imapmsg"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
-	"github.com/kiling91/telegram-email-assistant/internal/storage"
-	"github.com/kiling91/telegram-email-assistant/internal/storage/storage_impl"
 )
 
-type service struct {
-	store      storage.Storage
-	imapServer email.ImapServer
+type fact struct {
+	config    *config.Config
+	imapEmail email.ReadEmail
 }
 
 func NewFactory() factory.Factory {
-	return &service{}
+	return &fact{}
 }
 
-func (s *service) GetStorage() storage.Storage {
-	if s.store == nil {
-		s.store = storage_impl.NewStorage(s)
+func (f *fact) Config() *config.Config {
+	if f.config == nil {
+		f.config = config.NewConfig()
 	}
-	return s.store
+	return f.config
 }
 
-func (s *service) ImapServer() email.ImapServer {
-	if s.imapServer == nil {
-		s.imapServer = email_impl.NewImapServer(s)
+func (f *fact) ImapEmail() email.ReadEmail {
+	if f.imapEmail == nil {
+		f.imapEmail = imapmsg.NewReadEmail(f)
 	}
-	return s.imapServer
+	return f.imapEmail
 }
