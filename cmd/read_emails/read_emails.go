@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/kiling91/telegram-email-assistant/internal/email"
@@ -12,10 +13,11 @@ import (
 func main() {
 	fact := factory_impl.NewFactory()
 
+	cfg := fact.Config()
 	user := &email.ImapUser{
-		ImapServer: "imap.yandex.ru:993",
-		Login:      "kirillkiling@yandex.ru",
-		Password:   "hvitldgmynqhsvol",
+		ImapServer: cfg.ImapServer,
+		Login:      cfg.Login,
+		Password:   cfg.Password,
 	}
 
 	imap := fact.ImapEmail()
@@ -25,13 +27,11 @@ func main() {
 
 	}
 
+	sort.Slice(emails, func(i, j int) bool {
+		return emails[i].Date.Before(emails[j].Date)
+	})
+
 	for _, email := range emails {
-		if email.Uid == 651 || email.Uid == 677 {
-
-		} else {
-			continue
-		}
-
 		start := time.Now()
 
 		msg, err := imap.ReadEmail(context.Background(), user, email.Uid)

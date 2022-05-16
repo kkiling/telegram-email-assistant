@@ -2,11 +2,12 @@ package telegrammsg
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/kiling91/telegram-email-assistant/internal/common"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
-	"github.com/kiling91/telegram-email-assistant/internal/print_msg"
-	"strings"
+	printmsg "github.com/kiling91/telegram-email-assistant/internal/print_msg"
 )
 
 type service struct {
@@ -39,6 +40,10 @@ func (s *service) PrintMsgEnvelope(msg *email.MessageEnvelope) string {
 
 func (s *service) needDrawHtml(msg *email.Message) bool {
 	cfg := s.fact.Config()
+
+	if msg.Body.TextHtml == "" {
+		return false
+	}
 
 	if msg.Body.TextPlain == "" {
 		return true
