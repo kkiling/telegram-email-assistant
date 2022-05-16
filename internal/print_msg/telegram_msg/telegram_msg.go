@@ -49,7 +49,7 @@ func (s *service) needDrawHtml(msg *email.Message) bool {
 		return true
 	}
 
-	if len(msg.Body.TextPlain) > cfg.MaxTextMessageSize {
+	if len(msg.Body.TextPlain) > cfg.App.MaxTextMessageSize {
 		return true
 	}
 
@@ -67,7 +67,7 @@ func (s *service) PrintMsgWithBody(msg *email.Message, user string) (*printmsg.F
 
 	if s.needDrawHtml(msg) {
 		cfg := s.fact.Config()
-		dir, err := common.CreateFolderForEmail(cfg.FileStorageDir, user, msg.Uid)
+		dir, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, msg.Uid)
 		if err != nil {
 			return nil, err
 		}

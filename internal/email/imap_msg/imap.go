@@ -94,7 +94,7 @@ func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]em
 
 func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID uint32) (string, error) {
 	cfg := s.fact.Config()
-	newPath, err := common.CreateFolderForEmail(cfg.FileStorageDir, user, msgUID)
+	newPath, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, msgUID)
 	if err != nil {
 		return "", err
 	}
@@ -234,7 +234,7 @@ func (s *service) processReadEnvelope(uid uint32, mr *mail.Reader) (*email.Messa
 
 func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, msgUID uint32) (*email.Message, error) {
 	// Select INBOX
-	mbox, err := client.Select("INBOX", true)
+	mbox, err := client.Select("INBOX", s.fact.Config().App.MarkAsReadMessages)
 	if err != nil {
 		return nil, fmt.Errorf("error select mailbox: %w", err)
 	}

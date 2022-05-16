@@ -1,9 +1,11 @@
 package factory_impl
 
 import (
+	"log"
+
 	"github.com/kiling91/telegram-email-assistant/internal/config"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
-	"github.com/kiling91/telegram-email-assistant/internal/email/imap_msg"
+	imapmsg "github.com/kiling91/telegram-email-assistant/internal/email/imap_msg"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
 	printmsg "github.com/kiling91/telegram-email-assistant/internal/print_msg"
 	telegrammsg "github.com/kiling91/telegram-email-assistant/internal/print_msg/telegram_msg"
@@ -21,7 +23,11 @@ func NewFactory() factory.Factory {
 
 func (f *fact) Config() *config.Config {
 	if f.config == nil {
-		f.config = config.NewConfig()
+		cfg, err := config.NewConfig()
+		if err != nil {
+			log.Fatal(err)
+		}
+		f.config = cfg
 	}
 	return f.config
 }

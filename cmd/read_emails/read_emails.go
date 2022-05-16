@@ -15,9 +15,9 @@ func main() {
 
 	cfg := fact.Config()
 	user := &email.ImapUser{
-		ImapServer: cfg.ImapServer,
-		Login:      cfg.Login,
-		Password:   cfg.Password,
+		ImapServer: cfg.Imap.ImapServer,
+		Login:      cfg.Imap.Login,
+		Password:   cfg.Imap.Password,
 	}
 
 	imap := fact.ImapEmail()
