@@ -1,13 +1,9 @@
 package common
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -33,49 +29,31 @@ func saveHtml(textHtml string, dir string) error {
 
 func HtmlToPng(textHtml string, dir string) (string, error) {
 	imgPath := filepath.Join(dir, "index.png")
-	if _, err := os.Stat(imgPath); errors.Is(err, os.ErrNotExist) == false {
+	if _, err := os.Stat(imgPath); !errors.Is(err, os.ErrNotExist) {
 		return imgPath, err
 	}
 
-	textHtml = strings.ReplaceAll(textHtml, "src=\"cid:", fmt.Sprintf("src=\"%s/", dir))
-	err := saveHtml(textHtml, dir)
+	textHtml2 := strings.ReplaceAll(textHtml, "src=\"cid:", fmt.Sprintf("src=\"%s/", dir))
+	textHtml2 = strings.ReplaceAll(textHtml2, "src=cid:", fmt.Sprintf("src=%s/", dir))
+
+	err := saveHtml(textHtml2, dir)
 	if err != nil {
 		return "", err
 	}
 
-	cmd := exec.Command("python", "html2png.py", dir)
-	err = cmd.Run()
+	haveCid := "false"
+	if textHtml != textHtml2 {
+		haveCid = "true"
+	}
+
+	err = command("python3", "html2png.py", dir, haveCid)
 	if err != nil {
-		log.Println(err)
+		return "", fmt.Errorf("error run command: %w", err)
+	}
+
+	if _, err := os.Stat(imgPath); errors.Is(err, os.ErrNotExist) {
 		return "", err
 	}
-
-	/*stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Println(err)
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Println(err)
-	}
-	err = cmd.Start()
-	if err != nil {
-		log.Println(err)
-	}
-	go copyOutput(stdout)
-	go copyOutput(stderr)
-
-	err = cmd.Wait()
-	if err != nil {
-		log.Println(err)
-	}*/
 
 	return imgPath, nil
-}
-
-func copyOutput(r io.Reader) {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
 }

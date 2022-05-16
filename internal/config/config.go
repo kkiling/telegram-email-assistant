@@ -9,6 +9,6 @@ func NewConfig() *Config {
 	return &Config{
 		// TODO: FileStorageDir
 		FileStorageDir:     "/home/kiling/email-data",
-		MaxTextMessageSize: 256,
+		MaxTextMessageSize: 32,
 	}
 }
