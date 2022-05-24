@@ -31,21 +31,21 @@ func main() {
 		return emails[i].Date.Before(emails[j].Date)
 	})
 
-	for _, email := range emails {
+	for _, e := range emails {
 		start := time.Now()
 
-		msg, err := imap.ReadEmail(context.Background(), user, email.Uid)
+		msg, err := imap.ReadEmail(context.Background(), user, e.Uid)
 		if err != nil {
-			log.Fatalf("Error read #%d", email.Uid)
+			log.Fatalf("Error read #%d", e.Uid)
 		}
 
 		pnt := fact.PrintMsg()
 		_, err = pnt.PrintMsgWithBody(msg, user.Login)
 		if err != nil {
-			log.Fatalf("Error read #%d", email.Uid)
+			log.Fatalf("Error read #%d", e.Uid)
 		}
 
 		elapsed := time.Since(start)
-		log.Printf("#%d - %s %s (%fs)", email.Uid, email.FromAddress, email.Subject, elapsed.Seconds())
+		log.Printf("#%d - %s %s (%fs)", e.Uid, e.FromAddress, e.Subject, elapsed.Seconds())
 	}
 }

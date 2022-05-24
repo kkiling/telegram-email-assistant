@@ -109,7 +109,7 @@ func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID 
 	return filePath, nil
 }
 
-func (s *service) processReadBody(ctx context.Context, mr *mail.Reader, user string, msgUID uint32) (*email.MessageBody, error) {
+func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user string, msgUID uint32) (*email.MessageBody, error) {
 
 	msgBody := email.MessageBody{
 		TextHtml:        "",
@@ -290,12 +290,12 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 	}, nil
 }
 
-func (s *service) ReadUnseenEmails(ctx context.Context, user *email.ImapUser) ([]email.MessageEnvelope, error) {
+func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]email.MessageEnvelope, error) {
 	c, err := s.login(user)
 	defer func(c *client.Client) {
 		err := c.Logout()
 		if err != nil {
-			log.Errorf("error logout from imap server: %w", err)
+			log.Errorf("error logout from imap server: %v", err)
 		}
 	}(c)
 
@@ -322,7 +322,7 @@ func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, msgUID ui
 	defer func(c *client.Client) {
 		err := c.Logout()
 		if err != nil {
-			log.Errorf("error logout from imap server: %w", err)
+			log.Errorf("error logout from imap server: %v", err)
 		}
 	}(c)
 
