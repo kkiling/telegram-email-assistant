@@ -3,6 +3,8 @@ package factory_impl
 import (
 	"log"
 
+	"github.com/kiling91/telegram-email-assistant/internal/bot"
+	"github.com/kiling91/telegram-email-assistant/internal/bot/tgbot"
 	"github.com/kiling91/telegram-email-assistant/internal/config"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	imapmsg "github.com/kiling91/telegram-email-assistant/internal/email/imap_msg"
@@ -15,6 +17,7 @@ type fact struct {
 	config    *config.Config
 	imapEmail email.ReadEmail
 	printMsg  printmsg.PrintMsg
+	bot       bot.Bot
 }
 
 func NewFactory() factory.Factory {
@@ -30,6 +33,18 @@ func (f *fact) Config() *config.Config {
 		f.config = cfg
 	}
 	return f.config
+}
+
+func (f *fact) Bot() bot.Bot {
+	if f.bot == nil {
+		cfg := f.Config()
+		bot, err := tgbot.NewTbBot(&cfg.Telegram)
+		if err != nil {
+			log.Fatalf("error init tgbot: %v", bot)
+		}
+		f.bot = bot
+	}
+	return f.bot
 }
 
 func (f *fact) ImapEmail() email.ReadEmail {

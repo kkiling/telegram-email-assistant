@@ -25,20 +25,6 @@ type telegram struct {
 	bot *tg.Bot
 }
 
-type context struct {
-	ctx tg.Context
-}
-
-func newContext(ctx tg.Context) bot.Context {
-	return &context{
-		ctx: ctx,
-	}
-}
-
-func (c *context) UserId() int64 {
-	return c.ctx.Sender().ID
-}
-
 func NewTbBot(cfg *config.Telegram) (bot.Bot, error) {
 	pref := tg.Settings{
 		Token:  cfg.BotToken,
@@ -61,10 +47,50 @@ func (t *telegram) Handle(command string, h bot.HandlerFunc) {
 	})
 }
 
-func (t *telegram) Send(userId int64, text string, opts ...interface{}) (msgId int, err error) {
-	msg, err := t.bot.Send(newUser(userId), text, t.extractOptions(opts))
-	if err != nil {
-		return 0, err
+func (t *telegram) Send(userId int64, text string, opts ...interface{}) (e *bot.Editable, err error) {
+	var msg *tg.Message
+
+	if len(opts) > 0 {
+		sendOptions := t.extractOptions(opts)
+		msg, err = t.bot.Send(newUser(userId), text, sendOptions)
+	} else {
+		msg, err = t.bot.Send(newUser(userId), text)
 	}
-	return msg.ID, err
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &bot.Editable{
+		MessageID: msg.ID,
+		ChatID:    msg.Chat.ID,
+	}, err
+}
+
+func (t *telegram) Edit(edit *bot.Editable, text string, opts ...interface{}) (e *bot.Editable, err error) {
+	var msg *tg.Message
+
+	if len(opts) > 0 {
+		sendOptions := t.extractOptions(opts)
+		msg, err = t.bot.Edit(edit, text, sendOptions)
+	} else {
+		msg, err = t.bot.Edit(edit, text)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &bot.Editable{
+		MessageID: msg.ID,
+		ChatID:    msg.Chat.ID,
+	}, err
+}
+
+func (t *telegram) Start() {
+	t.bot.Start()
+}
+
+func (t *telegram) Stop() {
+	t.bot.Stop()
 }

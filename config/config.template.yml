@@ -1,0 +1,14 @@
+app:
+  file_directory: ""
+  max_text_message_size: 64
+  mark_as_read_messages: true
+  mail_check_timeout: 60
+
+imap:
+  imap_server: "imap.yandex.ru:993"
+  login: ""
+  password: ""
+
+telegram:
+  bot_token: ""
+  allowed_user_id: 550550

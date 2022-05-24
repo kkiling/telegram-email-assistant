@@ -1,37 +1,48 @@
 package tgbot
 
 import (
-	"log"
-
+	"github.com/kiling91/telegram-email-assistant/internal/bot"
 	tg "gopkg.in/telebot.v3"
 )
 
-func (t *telegram) drawInlineBtn(inlineBtns []*inlineBtn) interface{} {
+func (t *telegram) drawInlineBtn(inline *bot.Inline) *tg.ReplyMarkup {
 	menu := &tg.ReplyMarkup{}
 
-	rows := make([]tg.Row, len(inlineBtns))
-	for i, btn := range inlineBtns {
-		b := menu.Data(btn.text, btn.unique)
+	btns := inline.GetBtns()
+
+	var rows []tg.Row
+	var row []tg.Btn
+
+	for index, btn := range btns {
+		if index%inline.ItemsPerRow == 0 {
+			if len(row) > 0 {
+				rows = append(rows, menu.Row(row...))
+			}
+			row = []tg.Btn{}
+		}
+		b := menu.Data(btn.Text, btn.Unique, btn.Data)
 
 		t.bot.Handle(&b, func(c tg.Context) error {
-			log.Println(c.Callback().Unique)
-			return c.Respond()
+			return inline.Handler(newBtnContext(c))
 		})
 
-		rows[i] = menu.Row(b)
+		row = append(row, b)
 	}
 
+	if len(row) > 0 {
+		rows = append(rows, menu.Row(row...))
+	}
 	menu.Inline(rows...)
 	return menu
 }
 
-func (t *telegram) extractOptions(how []interface{}) []interface{} {
+func (t *telegram) extractOptions(how []interface{}) *tg.SendOptions {
+	opts := &tg.SendOptions{}
 
-	var opts = make([]interface{}, len(how))
-	for i, prop := range how {
+	for _, prop := range how {
 		switch opt := prop.(type) {
-		case []*inlineBtn:
-			opts[i] = t.drawInlineBtn(opt)
+		case *bot.Inline:
+			opts.ReplyMarkup = t.drawInlineBtn(opt)
 		default:
 			panic("telebot: unsupported send-option")
 		}

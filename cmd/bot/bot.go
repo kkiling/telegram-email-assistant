@@ -2,84 +2,63 @@ package main
 
 import (
 	"fmt"
-	"strconv"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/kiling91/telegram-email-assistant/internal/bot"
 	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
-	log "github.com/sirupsen/logrus"
-	tg "gopkg.in/telebot.v3"
+	"github.com/sirupsen/logrus"
 )
-
-type UserProfile struct {
-	TelegramID int64 `json:"telegram_id"`
-}
-
-func (p *UserProfile) Recipient() string {
-	return strconv.FormatInt(p.TelegramID, 10)
-}
-
-func mainProcess(allowedUserId int64, b *tg.Bot) {
-
-	time.Sleep(1 * time.Second)
-	for {
-		menu := &tg.ReplyMarkup{}
-
-		btnHelp := menu.Data("ℹ Help", "btn_help")
-		btnSettings := menu.Data("⚙ Settings", "btn_settings")
-		menu.Inline(
-			menu.Row(btnHelp),
-			menu.Row(btnSettings),
-		)
-
-		// On inline button pressed (callback)
-		b.Handle(&btnHelp, func(c tg.Context) error {
-			log.Println(c.Callback().Unique)
-			return c.Respond()
-		})
-
-		b.Handle(&btnSettings, func(c tg.Context) error {
-			log.Println(c.Callback().Unique)
-			return c.Respond()
-		})
-
-		if _, err := b.Send(&UserProfile{
-			TelegramID: 594785598,
-		}, "time", menu); err != nil {
-			log.Errorf("Unable to send message %v", err)
-		}
-		return
-		// time.Sleep(10 * time.Second)
-	}
-}
 
 func main() {
 	fact := factory_impl.NewFactory()
-	cfg := fact.Config()
 
-	pref := tg.Settings{
-		Token:  cfg.Telegram.BotToken,
-		Poller: &tg.LongPoller{Timeout: 10 * time.Second},
-	}
-
-	b, err := tg.NewBot(pref)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	b.Handle("/start", func(c tg.Context) error {
-		userId := c.Sender().ID
-		if userId != cfg.Telegram.AllowedUserId {
-			return c.Send(fmt.Sprintf("❗ Access is denied: your id #%d", userId))
-		}
-		return c.Send("Hello!")
+	b := fact.Bot()
+	b.Handle("/start", func(ctx bot.Context) error {
+		_, err := b.Send(ctx.UserId(), "hello")
+		return err
 	})
 
-	b.Handle(tg.OnText, func(c tg.Context) error {
-		return c.Send("🚫 I am not trained to respond to messages or commands")
+	b.Handle("/test", func(ctx bot.Context) error {
+
+		inline := bot.NewInline(2, func(ctx bot.BtnContext) error {
+			b.Send(ctx.UserId(), ctx.Data())
+			return nil
+		})
+
+		inline.Add("⚙ Settings", "btn_settings", "{settings}")
+		inline.Add("? Help", "btn_help", "{help}")
+
+		_, err := b.Send(ctx.UserId(), "test btn", inline)
+		return err
 	})
 
-	go mainProcess(cfg.Telegram.AllowedUserId, b)
+	b.Handle("/time", func(ctx bot.Context) error {
+		edit, err := b.Send(ctx.UserId(), "test timer ...")
+		go func() {
+			index := 0
+			for {
+				time.Sleep(time.Second)
+				index++
+				_, err = b.Edit(edit, fmt.Sprintf("test timer %d", index))
+				logrus.Warnf("error edit: %v", err)
+			}
+		}()
+		return err
+	})
 
+	// Gracefully shutdown
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		<-sig
+		log.Println("shutdown bot")
+		b.Stop()
+	}()
+
+	log.Println("start bot")
 	b.Start()
 }
