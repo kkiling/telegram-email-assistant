@@ -7,7 +7,7 @@ import (
 	"github.com/kiling91/telegram-email-assistant/internal/common"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
-	printmsg "github.com/kiling91/telegram-email-assistant/internal/print_msg"
+	"github.com/kiling91/telegram-email-assistant/internal/printmsg"
 )
 
 type service struct {

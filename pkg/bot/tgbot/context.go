@@ -1,7 +1,7 @@
 package tgbot
 
 import (
-	"github.com/kiling91/telegram-email-assistant/internal/bot"
+	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 	tg "gopkg.in/telebot.v3"
 )
 

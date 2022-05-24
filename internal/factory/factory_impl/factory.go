@@ -3,14 +3,14 @@ package factory_impl
 import (
 	"log"
 
-	"github.com/kiling91/telegram-email-assistant/internal/bot"
-	"github.com/kiling91/telegram-email-assistant/internal/bot/tgbot"
 	"github.com/kiling91/telegram-email-assistant/internal/config"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	imapmsg "github.com/kiling91/telegram-email-assistant/internal/email/imap_msg"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
-	printmsg "github.com/kiling91/telegram-email-assistant/internal/print_msg"
-	telegrammsg "github.com/kiling91/telegram-email-assistant/internal/print_msg/telegram_msg"
+	"github.com/kiling91/telegram-email-assistant/internal/printmsg"
+	telegrammsg "github.com/kiling91/telegram-email-assistant/internal/printmsg/telegram_msg"
+	"github.com/kiling91/telegram-email-assistant/pkg/bot"
+	"github.com/kiling91/telegram-email-assistant/pkg/bot/tgbot"
 )
 
 type fact struct {
@@ -38,7 +38,7 @@ func (f *fact) Config() *config.Config {
 func (f *fact) Bot() bot.Bot {
 	if f.bot == nil {
 		cfg := f.Config()
-		bot, err := tgbot.NewTbBot(&cfg.Telegram)
+		bot, err := tgbot.NewTbBot(cfg.Telegram.BotToken)
 		if err != nil {
 			log.Fatalf("error init tgbot: %v", bot)
 		}

@@ -5,8 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kiling91/telegram-email-assistant/internal/bot"
-	"github.com/kiling91/telegram-email-assistant/internal/config"
+	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 	tg "gopkg.in/telebot.v3"
 )
 
@@ -26,9 +25,9 @@ type telegram struct {
 	bot *tg.Bot
 }
 
-func NewTbBot(cfg *config.Telegram) (bot.Bot, error) {
+func NewTbBot(token string) (bot.Bot, error) {
 	pref := tg.Settings{
-		Token:  cfg.BotToken,
+		Token:  token,
 		Poller: &tg.LongPoller{Timeout: 10 * time.Second},
 	}
 

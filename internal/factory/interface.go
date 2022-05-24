@@ -1,10 +1,10 @@
 package factory
 
 import (
-	"github.com/kiling91/telegram-email-assistant/internal/bot"
 	"github.com/kiling91/telegram-email-assistant/internal/config"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
-	printmsg "github.com/kiling91/telegram-email-assistant/internal/print_msg"
+	"github.com/kiling91/telegram-email-assistant/internal/printmsg"
+	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 )
 
 type Factory interface {

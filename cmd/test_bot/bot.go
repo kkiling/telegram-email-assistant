@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kiling91/telegram-email-assistant/internal/bot"
 	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
+	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 	"github.com/sirupsen/logrus"
 )
 
