@@ -22,3 +22,8 @@ func (e *Editable) MessageSig() (messageID string, chatID int64) {
 type Context interface {
 	UserId() int64
 }
+
+type Photo struct {
+	Filename string
+	Caption  string
+}

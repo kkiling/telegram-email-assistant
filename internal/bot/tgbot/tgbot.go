@@ -1,6 +1,7 @@
 package tgbot
 
 import (
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -47,6 +48,31 @@ func (t *telegram) Handle(command string, h bot.HandlerFunc) {
 	})
 }
 
+func (t *telegram) SendPhoto(userId int64, photo *bot.Photo, opts ...interface{}) (e *bot.Editable, err error) {
+	var msg []tg.Message
+
+	p := &tg.Photo{
+		File:    tg.FromDisk(photo.Filename),
+		Caption: photo.Caption,
+	}
+
+	if len(opts) > 0 {
+		sendOptions := t.extractOptions(opts)
+		msg, err = t.bot.SendAlbum(newUser(userId), tg.Album{p}, sendOptions)
+	} else {
+		msg, err = t.bot.SendAlbum(newUser(userId), tg.Album{p})
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &bot.Editable{
+		MessageID: msg[0].ID,
+		ChatID:    msg[0].Chat.ID,
+	}, err
+}
+
 func (t *telegram) Send(userId int64, text string, opts ...interface{}) (e *bot.Editable, err error) {
 	var msg *tg.Message
 
@@ -65,6 +91,15 @@ func (t *telegram) Send(userId int64, text string, opts ...interface{}) (e *bot.
 		MessageID: msg.ID,
 		ChatID:    msg.Chat.ID,
 	}, err
+}
+
+func (t *telegram) SendDocument(userId int64, filename string) error {
+	doc := &tg.Document{
+		File:     tg.FromDisk(filename),
+		FileName: filepath.Base(filename),
+	}
+	_, err := t.bot.Send(newUser(userId), doc)
+	return err
 }
 
 func (t *telegram) Edit(edit *bot.Editable, text string, opts ...interface{}) (e *bot.Editable, err error) {

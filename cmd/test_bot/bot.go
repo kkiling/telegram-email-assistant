@@ -50,6 +50,18 @@ func main() {
 		return err
 	})
 
+	b.Handle("/photo", func(ctx bot.Context) error {
+		_, err := b.SendPhoto(ctx.UserId(), &bot.Photo{
+			Filename: "test.jpg",
+			Caption:  "Какой то текст....",
+		})
+		return err
+	})
+
+	b.Handle("/doc", func(ctx bot.Context) error {
+		return b.SendDocument(ctx.UserId(), "test.jpg")
+	})
+
 	// Gracefully shutdown
 	go func() {
 		sig := make(chan os.Signal, 1)
