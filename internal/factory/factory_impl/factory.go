@@ -20,18 +20,15 @@ type fact struct {
 	bot       bot.Bot
 }
 
-func NewFactory() factory.Factory {
-	return &fact{}
+func NewFactory(configFile string) factory.Factory {
+	cfg, err := config.NewConfig(configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &fact{config: cfg}
 }
 
 func (f *fact) Config() *config.Config {
-	if f.config == nil {
-		cfg, err := config.NewConfig()
-		if err != nil {
-			log.Fatal(err)
-		}
-		f.config = cfg
-	}
 	return f.config
 }
 

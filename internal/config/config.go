@@ -21,8 +21,8 @@ type Imap struct {
 }
 
 type Telegram struct {
-	BotToken      string `yaml:"bot_token"`
-	AllowedUserId int64  `yaml:"allowed_user_id"`
+	BotToken      string  `yaml:"bot_token"`
+	AllowedUserId []int64 `yaml:"allowed_user_id"`
 }
 
 type Config struct {
@@ -31,9 +31,9 @@ type Config struct {
 	Telegram Telegram `yaml:"telegram"`
 }
 
-func NewConfig() (*Config, error) {
+func NewConfig(configFile string) (*Config, error) {
 	var config Config
-	yamlFile, err := ioutil.ReadFile("./config/config.yml")
+	yamlFile, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("failure upload yaml file. err %v", err)
 	}

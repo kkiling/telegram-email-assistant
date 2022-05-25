@@ -11,4 +11,5 @@ imap:
 
 telegram:
   bot_token: ""
-  allowed_user_id: 550550
+  allowed_user_id:
+    - 550550
