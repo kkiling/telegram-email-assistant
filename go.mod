@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/emersion/go-imap v1.2.1
-	github.com/emersion/go-message v0.15.0
+	github.com/emersion/go-message v0.16.0
 	github.com/flytam/filenamify v1.1.0
 	github.com/sirupsen/logrus v1.8.1
 	gopkg.in/telebot.v3 v3.0.0
