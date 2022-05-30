@@ -133,4 +133,5 @@ from_email
 user_ids
 .png
 .idea/
-config.yml
+config/config.yml
+.db

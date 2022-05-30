@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"os/signal"
@@ -12,6 +13,7 @@ import (
 
 func main() {
 	configFile := flag.String("config", "config/config.yml", "Path to config file.")
+	ctx, cancel := context.WithCancel(context.Background())
 	a := app.NewApp(*configFile)
 	// Gracefully shutdown
 	go func() {
@@ -19,9 +21,10 @@ func main() {
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 		<-sig
 		logrus.Println("Shutdown bot")
+		cancel()
 		a.Shutdown()
 	}()
 
 	logrus.Println("Start bot")
-	a.Start()
+	a.Start(ctx)
 }

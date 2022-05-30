@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
+	"time"
 
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
@@ -43,14 +45,46 @@ func (a *App) allowedUser(ctx bot.Context) bool {
 	return true
 }
 
-func (a *App) readEmails(userIds []int64, imapUser *email.ImapUser) {
+func (a *App) onButton(ctx bot.BtnContext) error {
+	logrus.Warnf("%s - %s", ctx.Unique(), ctx.Data())
+	return nil
+}
+
+func (a *App) readEmailsLoop(ctx context.Context) {
+	cfg := a.fact.Config()
+	userIds := cfg.Telegram.AllowedUserIds
+	imapUser := &email.ImapUser{
+		ImapServer: cfg.Imap.ImapServer,
+		Login:      cfg.Imap.Login,
+		Password:   cfg.Imap.Password,
+	}
+
+	isFirst := true
+	for alive := true; alive; {
+		var timer *time.Timer
+		if isFirst {
+			timer = time.NewTimer(time.Second)
+			isFirst = false
+		} else {
+			timer = time.NewTimer(time.Duration(cfg.App.MailCheckTimeout) * time.Second)
+		}
+		select {
+		case <-ctx.Done():
+			alive = false
+		case <-timer.C:
+			a.readEmails(ctx, userIds, imapUser)
+		}
+	}
+}
+
+func (a *App) readEmails(ctx context.Context, userIds []int64, imapUser *email.ImapUser) {
 	logrus.Info("Start read unseen emails")
 	imap := a.fact.ImapEmail()
 	b := a.fact.Bot()
 	pnt := a.fact.PrintMsg()
 	storage := a.fact.Storage()
 
-	emails, err := imap.ReadUnseenEmails(context.Background(), imapUser)
+	emails, err := imap.ReadUnseenEmails(ctx, imapUser)
 	if err != nil {
 		logrus.Fatalln(err)
 	}
@@ -65,10 +99,14 @@ func (a *App) readEmails(userIds []int64, imapUser *email.ImapUser) {
 		} else if contains {
 			continue
 		}
-
+		sid := strconv.FormatUint(uint64(e.Uid), 10)
 		msg := pnt.PrintMsgEnvelope(e)
 		for _, id := range userIds {
-			if _, err := b.Send(id, msg); err != nil {
+			inline := bot.NewInline(2, a.onButton)
+
+			inline.Add("📩 Mark as read", "btn_mark", sid)
+			inline.Add("📧 Read", "btn_read", sid)
+			if _, err := b.Send(id, msg, inline); err != nil {
 				logrus.Warnf("error send msg: %v", err)
 			} else {
 				if err := storage.SaveMsgId(imapUser.Login, e.Uid); err != nil {
@@ -95,20 +133,9 @@ func (a *App) startCommand() {
 	})
 }
 
-func (a *App) Start() {
+func (a *App) Start(ctx context.Context) {
 	a.startCommand()
-
-	// ***
-	cfg := a.fact.Config()
-	userIds := cfg.Telegram.AllowedUserIds
-	imapUser := &email.ImapUser{
-		ImapServer: cfg.Imap.ImapServer,
-		Login:      cfg.Imap.Login,
-		Password:   cfg.Imap.Password,
-	}
-	// ***
-
-	go a.readEmails(userIds, imapUser)
+	go a.readEmailsLoop(ctx)
 	a.fact.Bot().Start()
 }
 

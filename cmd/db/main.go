@@ -26,13 +26,13 @@ func main() {
 	}
 
 	_, err = db.Exec(`INSERT INTO emails (email, msgId) values ($1, $2)`,
-		"kiling@mail.ru", 8035)
+		"user@mail.ru", 8035)
 	if err != nil {
 		panic(err)
 	}
 
 	rows, err := db.Query("SELECT COUNT(*) FROM emails WHERE email=$1 AND msgId=$2",
-		"kiling@mail.ru", 8035)
+		"user@mail.ru", 8035)
 	if err != nil {
 		log.Fatal(err)
 	}

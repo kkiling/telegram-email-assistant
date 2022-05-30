@@ -35,7 +35,7 @@ func (c *btnContext) UserId() int64 {
 }
 
 func (c *btnContext) Unique() string {
-	return c.ctx.Callback().ID
+	return c.ctx.Callback().Unique
 }
 
 func (c *btnContext) Data() string {

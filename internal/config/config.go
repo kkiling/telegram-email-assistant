@@ -10,7 +10,6 @@ import (
 type App struct {
 	FileDirectory      string `yaml:"file_directory"`
 	MaxTextMessageSize int    `yaml:"max_text_message_size"`
-	MarkAsReadMessages bool   `yaml:"mark_as_read_messages"`
 	MailCheckTimeout   int    `yaml:"mail_check_timeout"`
 }
 

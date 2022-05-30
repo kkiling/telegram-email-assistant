@@ -59,9 +59,13 @@ func (s *service) getUnseenEmails(client *client.Client) ([]uint32, error) {
 	return UIDs, nil
 }
 
-func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]*email.MessageEnvelope, error) {
+func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) ([]*email.MessageEnvelope, error) {
+	result := make([]*email.MessageEnvelope, 0)
+	if len(uids) == 0 {
+		return result, nil
+	}
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(UIDs...)
+	seqSet.AddNum(uids...)
 
 	items := []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}
 
@@ -71,7 +75,6 @@ func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]*e
 		done <- client.UidFetch(seqSet, items, messages)
 	}()
 
-	result := make([]*email.MessageEnvelope, 0)
 	for msg := range messages {
 		from := msg.Envelope.From[0]
 		to := msg.Envelope.To[0]
@@ -235,7 +238,7 @@ func (s *service) processReadEnvelope(uid uint32, mr *mail.Reader) (*email.Messa
 
 func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, msgUID uint32) (*email.Message, error) {
 	// Select INBOX
-	mbox, err := client.Select("INBOX", s.fact.Config().App.MarkAsReadMessages)
+	mbox, err := client.Select("INBOX", false)
 	if err != nil {
 		return nil, fmt.Errorf("error select mailbox: %w", err)
 	}
