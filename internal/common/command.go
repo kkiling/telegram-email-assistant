@@ -5,20 +5,20 @@ import (
 	"io"
 	"os/exec"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func printStdout(r io.Reader) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		log.Debugf("stdout: %s", scanner.Text())
+		logrus.Debugf("stdout: %s", scanner.Text())
 	}
 }
 
 func printStderr(r io.Reader) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		log.Warnf("stderr: %s", scanner.Text())
+		logrus.Warnf("stderr: %s", scanner.Text())
 	}
 }
 

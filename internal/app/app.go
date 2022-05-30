@@ -1,8 +1,11 @@
 package app
 
 import (
+	"context"
 	"fmt"
+	"sort"
 
+	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
 	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
 	"github.com/kiling91/telegram-email-assistant/pkg/bot"
@@ -20,11 +23,11 @@ func NewApp(configFile string) *App {
 }
 
 func (a *App) allowedUser(ctx bot.Context) bool {
-	allowedUserId := a.fact.Config().Telegram.AllowedUserId
+	allowedUserIds := a.fact.Config().Telegram.AllowedUserIds
 	allowed := false
 	userId := ctx.UserId()
 
-	for _, id := range allowedUserId {
+	for _, id := range allowedUserIds {
 		if id == userId {
 			allowed = true
 			break
@@ -38,6 +41,42 @@ func (a *App) allowedUser(ctx bot.Context) bool {
 	}
 
 	return true
+}
+
+func (a *App) readEmails(userIds []int64, imapUser *email.ImapUser) {
+	logrus.Info("Start read unseen emails")
+	imap := a.fact.ImapEmail()
+	b := a.fact.Bot()
+	pnt := a.fact.PrintMsg()
+	storage := a.fact.Storage()
+
+	emails, err := imap.ReadUnseenEmails(context.Background(), imapUser)
+	if err != nil {
+		logrus.Fatalln(err)
+	}
+
+	sort.Slice(emails, func(i, j int) bool {
+		return emails[i].Date.Before(emails[j].Date)
+	})
+
+	for _, e := range emails {
+		if contains, err := storage.MsgIdContains(imapUser.Login, e.Uid); err != nil {
+			logrus.Warnf("error get msg contains from storage: %v", err)
+		} else if contains {
+			continue
+		}
+
+		msg := pnt.PrintMsgEnvelope(e)
+		for _, id := range userIds {
+			if _, err := b.Send(id, msg); err != nil {
+				logrus.Warnf("error send msg: %v", err)
+			} else {
+				if err := storage.SaveMsgId(imapUser.Login, e.Uid); err != nil {
+					logrus.Warnf("error save msg id to storage: %v", err)
+				}
+			}
+		}
+	}
 }
 
 func (a *App) startCommand() {
@@ -58,9 +97,22 @@ func (a *App) startCommand() {
 
 func (a *App) Start() {
 	a.startCommand()
+
+	// ***
+	cfg := a.fact.Config()
+	userIds := cfg.Telegram.AllowedUserIds
+	imapUser := &email.ImapUser{
+		ImapServer: cfg.Imap.ImapServer,
+		Login:      cfg.Imap.Login,
+		Password:   cfg.Imap.Password,
+	}
+	// ***
+
+	go a.readEmails(userIds, imapUser)
 	a.fact.Bot().Start()
 }
 
 func (a *App) Shutdown() {
 	a.fact.Bot().Stop()
+	a.fact.Storage().ShutDown()
 }

@@ -11,6 +11,14 @@
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/bot/",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Launch db",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/db/",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

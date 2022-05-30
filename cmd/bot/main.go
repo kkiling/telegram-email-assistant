@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/kiling91/telegram-email-assistant/internal/app"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -18,10 +18,10 @@ func main() {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 		<-sig
-		log.Println("Shutdown bot")
+		logrus.Println("Shutdown bot")
 		a.Shutdown()
 	}()
 
-	log.Println("Start bot")
+	logrus.Println("Start bot")
 	a.Start()
 }

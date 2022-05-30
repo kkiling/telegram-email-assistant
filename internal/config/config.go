@@ -21,8 +21,8 @@ type Imap struct {
 }
 
 type Telegram struct {
-	BotToken      string  `yaml:"bot_token"`
-	AllowedUserId []int64 `yaml:"allowed_user_id"`
+	BotToken       string  `yaml:"bot_token"`
+	AllowedUserIds []int64 `yaml:"allowed_user_id"`
 }
 
 type Config struct {

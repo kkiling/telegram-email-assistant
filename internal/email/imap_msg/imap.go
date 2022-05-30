@@ -14,7 +14,7 @@ import (
 	"github.com/kiling91/telegram-email-assistant/internal/common"
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type service struct {
@@ -58,7 +58,7 @@ func (s *service) getUnseenEmails(client *client.Client) ([]uint32, error) {
 	return UIDs, nil
 }
 
-func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]email.MessageEnvelope, error) {
+func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]*email.MessageEnvelope, error) {
 	seqSet := new(imap.SeqSet)
 	seqSet.AddNum(UIDs...)
 
@@ -70,11 +70,11 @@ func (s *service) readEmailEnvelope(client *client.Client, UIDs ...uint32) ([]em
 		done <- client.UidFetch(seqSet, items, messages)
 	}()
 
-	result := make([]email.MessageEnvelope, 0)
+	result := make([]*email.MessageEnvelope, 0)
 	for msg := range messages {
 		from := msg.Envelope.From[0]
 		to := msg.Envelope.To[0]
-		result = append(result, email.MessageEnvelope{
+		result = append(result, &email.MessageEnvelope{
 			Uid:         msg.Uid,
 			Date:        msg.Envelope.Date,
 			Subject:     msg.Envelope.Subject,
@@ -153,7 +153,7 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 					}
 
 					if attachmentId == "" {
-						log.Warnf("msgUID: %d - inline attachmentId is empty", msgUID)
+						logrus.Warnf("msgUID: %d - inline attachmentId is empty", msgUID)
 					} else {
 						filePath, err := s.saveFile(attachmentId, p.Body, user, msgUID)
 						if err != nil {
@@ -166,8 +166,8 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 						})
 					}
 				} else {
-					log.Errorf("Unknown contentDisposition: %s", contentDisposition)
-					log.Errorf("Unknown contentType: %s", contentType)
+					logrus.Errorf("Unknown contentDisposition: %s", contentDisposition)
+					logrus.Errorf("Unknown contentType: %s", contentType)
 				}
 			}
 		case *mail.AttachmentHeader:
@@ -179,7 +179,7 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 			}
 
 			if fileName == "" {
-				log.Warnf("msgUID: %d - attachment fileName is empty", msgUID)
+				logrus.Warnf("msgUID: %d - attachment fileName is empty", msgUID)
 			} else {
 				filePath, err := s.saveFile(fileName, p.Body, user, msgUID)
 				if err != nil {
@@ -290,12 +290,12 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 	}, nil
 }
 
-func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]email.MessageEnvelope, error) {
+func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]*email.MessageEnvelope, error) {
 	c, err := s.login(user)
 	defer func(c *client.Client) {
 		err := c.Logout()
 		if err != nil {
-			log.Errorf("error logout from imap server: %v", err)
+			logrus.Errorf("error logout from imap server: %v", err)
 		}
 	}(c)
 
@@ -322,7 +322,7 @@ func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, msgUID ui
 	defer func(c *client.Client) {
 		err := c.Logout()
 		if err != nil {
-			log.Errorf("error logout from imap server: %v", err)
+			logrus.Errorf("error logout from imap server: %v", err)
 		}
 	}(c)
 

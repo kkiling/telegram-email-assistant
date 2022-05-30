@@ -77,9 +77,9 @@ func (t *telegram) Send(userId int64, text string, opts ...interface{}) (e *bot.
 
 	if len(opts) > 0 {
 		sendOptions := t.extractOptions(opts)
-		msg, err = t.bot.Send(newUser(userId), text, sendOptions)
+		msg, err = t.bot.Send(newUser(userId), text, sendOptions, tg.ModeHTML)
 	} else {
-		msg, err = t.bot.Send(newUser(userId), text)
+		msg, err = t.bot.Send(newUser(userId), text, tg.ModeHTML)
 	}
 
 	if err != nil {
@@ -106,9 +106,9 @@ func (t *telegram) Edit(edit *bot.Editable, text string, opts ...interface{}) (e
 
 	if len(opts) > 0 {
 		sendOptions := t.extractOptions(opts)
-		msg, err = t.bot.Edit(edit, text, sendOptions)
+		msg, err = t.bot.Edit(edit, text, sendOptions, tg.ModeHTML)
 	} else {
-		msg, err = t.bot.Edit(edit, text)
+		msg, err = t.bot.Edit(edit, text, tg.ModeHTML)
 	}
 
 	if err != nil {

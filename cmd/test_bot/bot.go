@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,7 +13,7 @@ import (
 )
 
 func main() {
-	fact := factory_impl.NewFactory()
+	fact := factory_impl.NewFactory("config/config.yml")
 
 	b := fact.Bot()
 	b.Handle("/start", func(ctx bot.Context) error {
@@ -67,10 +66,10 @@ func main() {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 		<-sig
-		log.Println("shutdown bot")
+		logrus.Println("shutdown bot")
 		b.Stop()
 	}()
 
-	log.Println("start bot")
+	logrus.Println("start bot")
 	b.Start()
 }

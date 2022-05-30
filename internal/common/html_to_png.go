@@ -3,10 +3,11 @@ package common
 import (
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 func saveHtml(textHtml string, dir string) error {
@@ -20,7 +21,7 @@ func saveHtml(textHtml string, dir string) error {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			log.Errorf("error close %s", filePath)
+			logrus.Errorf("error close %s", filePath)
 		}
 	}(f)
 
