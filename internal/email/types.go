@@ -20,14 +20,14 @@ type AttachmentFile struct {
 }
 
 type Message struct {
-	Uid      uint32
+	Uid      int64
 	Envelope *MessageEnvelope
 	Body     *MessageBody
 }
 
 type MessageEnvelope struct {
 	// The message unique identifier. It must be greater than or equal to 1.
-	Uid uint32
+	Uid int64
 	// The message date.
 	Date time.Time
 	// The message subject.

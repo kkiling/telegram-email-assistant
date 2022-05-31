@@ -2,12 +2,13 @@ package common
 
 import (
 	"fmt"
-	"github.com/flytam/filenamify"
 	"os"
 	"path/filepath"
+
+	"github.com/flytam/filenamify"
 )
 
-func CreateFolderForEmail(fileStorageDir string, to string, msgUID uint32) (string, error) {
+func CreateFolderForEmail(fileStorageDir string, to string, msgUID int64) (string, error) {
 	emailUser, err := filenamify.Filenamify(to, filenamify.Options{})
 	if err != nil {
 		return "", fmt.Errorf("error convert %s to valid filename with error: %w", emailUser, err)

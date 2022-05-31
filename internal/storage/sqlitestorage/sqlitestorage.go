@@ -41,7 +41,7 @@ func NewSqliteStorage(fact factory.Factory) (storage.Storage, error) {
 	}, nil
 }
 
-func (s *service) SaveMsgId(email string, uid uint32) error {
+func (s *service) SaveMsgId(email string, uid int64) error {
 	if contains, err := s.MsgIdContains(email, uid); err != nil {
 		return err
 	} else if contains {
@@ -55,7 +55,7 @@ func (s *service) SaveMsgId(email string, uid uint32) error {
 	return nil
 }
 
-func (s *service) MsgIdContains(email string, uid uint32) (bool, error) {
+func (s *service) MsgIdContains(email string, uid int64) (bool, error) {
 	rows, err := s.db.Query("SELECT COUNT(*) FROM emails WHERE email=$1 AND msgId=$2",
 		email, uid)
 	if err != nil {

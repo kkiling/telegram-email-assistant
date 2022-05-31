@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strconv"
 	"time"
 
 	"github.com/kiling91/telegram-email-assistant/internal/email"
@@ -12,6 +10,13 @@ import (
 	"github.com/kiling91/telegram-email-assistant/internal/factory/factory_impl"
 	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 	"github.com/sirupsen/logrus"
+)
+
+type BtnType = string
+
+const (
+	BtnMark BtnType = "btn_mark"
+	BtnRead BtnType = "btn_read"
 )
 
 type App struct {
@@ -45,11 +50,6 @@ func (a *App) allowedUser(ctx bot.Context) bool {
 	return true
 }
 
-func (a *App) onButton(ctx bot.BtnContext) error {
-	logrus.Warnf("%s - %s", ctx.Unique(), ctx.Data())
-	return nil
-}
-
 func (a *App) readEmailsLoop(ctx context.Context) {
 	cfg := a.fact.Config()
 	userIds := cfg.Telegram.AllowedUserIds
@@ -58,7 +58,7 @@ func (a *App) readEmailsLoop(ctx context.Context) {
 		Login:      cfg.Imap.Login,
 		Password:   cfg.Imap.Password,
 	}
-
+	reader := NewReader(a.fact, userIds, imapUser)
 	isFirst := true
 	for alive := true; alive; {
 		var timer *time.Timer
@@ -72,47 +72,7 @@ func (a *App) readEmailsLoop(ctx context.Context) {
 		case <-ctx.Done():
 			alive = false
 		case <-timer.C:
-			a.readEmails(ctx, userIds, imapUser)
-		}
-	}
-}
-
-func (a *App) readEmails(ctx context.Context, userIds []int64, imapUser *email.ImapUser) {
-	logrus.Info("Start read unseen emails")
-	imap := a.fact.ImapEmail()
-	b := a.fact.Bot()
-	pnt := a.fact.PrintMsg()
-	storage := a.fact.Storage()
-
-	emails, err := imap.ReadUnseenEmails(ctx, imapUser)
-	if err != nil {
-		logrus.Fatalln(err)
-	}
-
-	sort.Slice(emails, func(i, j int) bool {
-		return emails[i].Date.Before(emails[j].Date)
-	})
-
-	for _, e := range emails {
-		if contains, err := storage.MsgIdContains(imapUser.Login, e.Uid); err != nil {
-			logrus.Warnf("error get msg contains from storage: %v", err)
-		} else if contains {
-			continue
-		}
-		sid := strconv.FormatUint(uint64(e.Uid), 10)
-		msg := pnt.PrintMsgEnvelope(e)
-		for _, id := range userIds {
-			inline := bot.NewInline(2, a.onButton)
-
-			inline.Add("📩 Mark as read", "btn_mark", sid)
-			inline.Add("📧 Read", "btn_read", sid)
-			if _, err := b.Send(id, msg, inline); err != nil {
-				logrus.Warnf("error send msg: %v", err)
-			} else {
-				if err := storage.SaveMsgId(imapUser.Login, e.Uid); err != nil {
-					logrus.Warnf("error save msg id to storage: %v", err)
-				}
-			}
+			reader.Start(ctx)
 		}
 	}
 }

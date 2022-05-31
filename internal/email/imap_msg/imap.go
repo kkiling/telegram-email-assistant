@@ -79,7 +79,7 @@ func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) ([]*e
 		from := msg.Envelope.From[0]
 		to := msg.Envelope.To[0]
 		result = append(result, &email.MessageEnvelope{
-			Uid:         msg.Uid,
+			Uid:         int64(msg.Uid),
 			Date:        msg.Envelope.Date,
 			Subject:     msg.Envelope.Subject,
 			FromAddress: from.MailboxName + from.HostName,
@@ -96,7 +96,7 @@ func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) ([]*e
 	return result, nil
 }
 
-func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID uint32) (string, error) {
+func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID int64) (string, error) {
 	cfg := s.fact.Config()
 	newPath, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, msgUID)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID 
 	return filePath, nil
 }
 
-func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user string, msgUID uint32) (*email.MessageBody, error) {
+func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user string, msgUID int64) (*email.MessageBody, error) {
 
 	msgBody := email.MessageBody{
 		TextHtml:        "",
@@ -200,7 +200,7 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 	return &msgBody, nil
 }
 
-func (s *service) processReadEnvelope(uid uint32, mr *mail.Reader) (*email.MessageEnvelope, error) {
+func (s *service) processReadEnvelope(uid int64, mr *mail.Reader) (*email.MessageEnvelope, error) {
 	msgEnvelope := email.MessageEnvelope{
 		Uid: uid,
 	}
@@ -236,7 +236,7 @@ func (s *service) processReadEnvelope(uid uint32, mr *mail.Reader) (*email.Messa
 	return &msgEnvelope, nil
 }
 
-func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, msgUID uint32) (*email.Message, error) {
+func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, msgUID int64) (*email.Message, error) {
 	// Select INBOX
 	mbox, err := client.Select("INBOX", false)
 	if err != nil {
@@ -250,7 +250,7 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 
 	// Select msg by uid
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(msgUID)
+	seqSet.AddNum(uint32(msgUID))
 
 	// Get the whole message body
 	var section imap.BodySectionName
@@ -277,7 +277,7 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 		return nil, fmt.Errorf("error create reader: %w", err)
 	}
 
-	msgEnvelope, err := s.processReadEnvelope(msg.Uid, mr)
+	msgEnvelope, err := s.processReadEnvelope(int64(msg.Uid), mr)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 	}
 
 	return &email.Message{
-		Uid:      msg.Uid,
+		Uid:      int64(msg.Uid),
 		Envelope: msgEnvelope,
 		Body:     msgBody,
 	}, nil
@@ -321,7 +321,7 @@ func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]*
 	return result, nil
 }
 
-func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, msgUID uint32) (*email.Message, error) {
+func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, msgUID int64) (*email.Message, error) {
 	c, err := s.login(user)
 	defer func(c *client.Client) {
 		err := c.Logout()
