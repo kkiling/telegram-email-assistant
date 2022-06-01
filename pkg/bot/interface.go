@@ -8,6 +8,7 @@ type Bot interface {
 	SendPhoto(userId int64, photo *Photo, opts ...interface{}) (e *Editable, err error)
 	SendDocument(userId int64, filename string) error
 	Edit(edit *Editable, text string, opts ...interface{}) (e *Editable, err error)
+	Delete(edit *Editable) error
 	Start()
 	Stop()
 }

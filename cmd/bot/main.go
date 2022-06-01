@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	logrus.SetLevel(logrus.DebugLevel)
+
 	configFile := flag.String("config", "config/config.yml", "Path to config file.")
 	ctx, cancel := context.WithCancel(context.Background())
 	a := app.NewApp(*configFile)

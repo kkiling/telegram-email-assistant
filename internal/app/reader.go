@@ -27,14 +27,56 @@ func NewReader(fact factory.Factory, userIds []int64, imapUser *email.ImapUser) 
 }
 
 func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID int64) {
+	b := r.fact.Bot()
+	imap := r.fact.ImapEmail()
+	pnt := r.fact.PrintMsg()
+	login := r.fact.Config().Imap.Login
 	// ⌛ Reading a mail from {fromEmail}
 	// ⏳ Reading a mail from {fromEmail} ({seconds} sec)
 	// ⌛ Reading a mail from {fromEmail} ({seconds} sec)
-	b := r.fact.Bot()
-	_, err := b.Send(userId, fmt.Sprintf("⌛ Reading a mail from id:%d", msgUID))
+	edit, err := b.Send(userId, fmt.Sprintf("⌛ Reading a mail from id:%d", msgUID))
+	defer b.Delete(edit)
+
 	if err != nil {
 		logrus.Warnf("error send msg to user %d", userId)
 		return
+	}
+
+	msg, err := imap.ReadEmail(ctx, r.imapUser, msgUID)
+	if err != nil {
+		logrus.Warnf("error read msg #%d: %v", msgUID, err)
+		return
+	}
+
+	fmsg, err := pnt.PrintMsgWithBody(msg, login)
+	if err != nil {
+		logrus.Warnf("error print msg #%d: %v", msgUID, err)
+		return
+	}
+
+	if fmsg.Img != "" {
+		_, err := b.SendPhoto(userId, &bot.Photo{
+			Filename: fmsg.Img,
+			Caption:  fmsg.Text,
+		})
+		if err != nil {
+			logrus.Warnf("error send photo #%d: %v", msgUID, err)
+			return
+		}
+	} else {
+		_, err := b.Send(userId, fmsg.Text)
+		if err != nil {
+			logrus.Warnf("error send photo #%d: %v", msgUID, err)
+			return
+		}
+	}
+
+	for _, attach := range fmsg.Attachment {
+		err := b.SendDocument(userId, attach)
+		if err != nil {
+			logrus.Warnf("error send document #%d: %v", msgUID, err)
+			return
+		}
 	}
 }
 
@@ -46,7 +88,7 @@ func (r *Reader) onButton(ctx context.Context, btnCtx bot.BtnContext) error {
 	switch btnCtx.Unique() {
 	case BtnMark:
 	case BtnRead:
-		r.startReadEmailBody(ctx, btnCtx.UserId(), msgUID)
+		go r.startReadEmailBody(ctx, btnCtx.UserId(), msgUID)
 	default:
 		logrus.Warnf("unknow btn type %s", btnCtx.Unique())
 	}

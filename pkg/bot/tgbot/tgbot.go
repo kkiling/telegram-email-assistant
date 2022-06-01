@@ -57,9 +57,9 @@ func (t *telegram) SendPhoto(userId int64, photo *bot.Photo, opts ...interface{}
 
 	if len(opts) > 0 {
 		sendOptions := t.extractOptions(opts)
-		msg, err = t.bot.SendAlbum(newUser(userId), tg.Album{p}, sendOptions)
+		msg, err = t.bot.SendAlbum(newUser(userId), tg.Album{p}, sendOptions, tg.ModeHTML)
 	} else {
-		msg, err = t.bot.SendAlbum(newUser(userId), tg.Album{p})
+		msg, err = t.bot.SendAlbum(newUser(userId), tg.Album{p}, tg.ModeHTML)
 	}
 
 	if err != nil {
@@ -119,6 +119,10 @@ func (t *telegram) Edit(edit *bot.Editable, text string, opts ...interface{}) (e
 		MessageID: msg.ID,
 		ChatID:    msg.Chat.ID,
 	}, err
+}
+
+func (t *telegram) Delete(edit *bot.Editable) error {
+	return t.bot.Delete(edit)
 }
 
 func (t *telegram) Start() {
