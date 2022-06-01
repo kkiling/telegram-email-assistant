@@ -1,21 +1,34 @@
-FROM python:3.9
+FROM golang:1.18 as builder
+MAINTAINER Kirill Kiling
 
-ENV IS_PROD true
-ENV MAIL_SERVRE 'imap.yandex.ru'
-ENV MAIL_LOGIN ''
-ENV MAIL_PASSWORD ''
-ENV TG_BOT_TOKEN ''
-ENV MAX_TEXT_MESSAGE 256
-ENV TIME_OUT_EMAIL_CHECKER 5
-ENV TIME_OUT_ERROR 60
-ENV ALLOWED_USERS []
+# ARG security: https://bit.ly/2oY3pCn
+WORKDIR /build
 
-WORKDIR /code
-ENV IS_PROD Yes
+# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
+COPY go.mod go.sum ./
+RUN go mod download
+RUN go mod verify
+COPY . .
+
+RUN go build -v -o bot cmd/bot/main.go
+
+FROM golang:1.18
+
+WORKDIR /app
+COPY --from=builder /build/bot /app
+
+# install python
 RUN apt-get update
+RUN apt-get -y install python3
+RUN apt-get -y install python3-setuptools
+RUN apt-get -y install python3-pip
 RUN apt-get install -y wkhtmltopdf
 COPY ./requirements.txt .
+COPY ./html2png.py .
 RUN pip install -r requirements.txt
-COPY . .
-CMD [ "python", "./main.py" ]
 
+RUN mkdir /configs
+RUN mkdir /data
+#USER 1000:1000
+
+CMD ./bot --config "/configs/config.yml"

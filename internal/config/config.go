@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 type App struct {
 	FileDirectory      string `yaml:"file_directory"`
+	SQLiteDbFile       string `yaml:"store_db"`
 	MaxTextMessageSize int    `yaml:"max_text_message_size"`
 	MailCheckTimeout   int    `yaml:"mail_check_timeout"`
 }
@@ -31,6 +33,7 @@ type Config struct {
 }
 
 func NewConfig(configFile string) (*Config, error) {
+	logrus.Infof("Read config file: %s", configFile)
 	var config Config
 	yamlFile, err := ioutil.ReadFile(configFile)
 	if err != nil {

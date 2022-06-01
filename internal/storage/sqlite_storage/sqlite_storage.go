@@ -8,6 +8,7 @@ import (
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
 	"github.com/kiling91/telegram-email-assistant/internal/storage"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sirupsen/logrus"
 )
 
 type service struct {
@@ -16,7 +17,8 @@ type service struct {
 }
 
 func NewSqliteStorage(fact factory.Factory) (storage.Storage, error) {
-	db, err := sql.Open("sqlite3", "store.db")
+	logrus.Infof("Open db file: %s", fact.Config().App.SQLiteDbFile)
+	db, err := sql.Open("sqlite3", fact.Config().App.SQLiteDbFile)
 	if err != nil {
 		return nil, err
 	}

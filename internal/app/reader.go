@@ -108,11 +108,13 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 	msg, err := imap.ReadEmail(ctx, r.imapUser, msgUID)
 	if err != nil {
 		logrus.Warnf("error read msg #%d: %v", msgUID, err)
+		end <- true
 		return
 	}
 	fmsg, err := pnt.PrintMsgWithBody(msg, login)
 	if err != nil {
 		logrus.Warnf("error print msg #%d: %v", msgUID, err)
+		end <- true
 		return
 	}
 
