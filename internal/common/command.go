@@ -18,7 +18,7 @@ func printStdout(r io.Reader) {
 func printStderr(r io.Reader) {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		logrus.Warnf("stderr: %s", scanner.Text())
+		logrus.Errorf("stderr: %s", scanner.Text())
 	}
 }
 

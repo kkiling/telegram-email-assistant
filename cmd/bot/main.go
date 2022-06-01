@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
+	logrus.SetLevel(logrus.InfoLevel)
 
 	configFile := flag.String("config", "configs/config.yml", "Path to config file.")
 	flag.Parse()

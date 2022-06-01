@@ -157,7 +157,7 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 					}
 
 					if attachmentId == "" {
-						logrus.Warnf("msgUID: %d - inline attachmentId is empty", msgUID)
+						logrus.Errorf("msgUID: %d - inline attachmentId is empty", msgUID)
 					} else {
 						filePath, err := s.saveFile(attachmentId, p.Body, user, msgUID)
 						if err != nil {
@@ -296,16 +296,17 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 
 func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]*email.MessageEnvelope, error) {
 	c, err := s.login(user)
+
+	if err != nil {
+		return nil, err
+	}
+
 	defer func(c *client.Client) {
 		err := c.Logout()
 		if err != nil {
 			logrus.Errorf("error logout from imap server: %v", err)
 		}
 	}(c)
-
-	if err != nil {
-		return nil, err
-	}
 
 	// Select INBOX
 	UIDs, err := s.getUnseenEmails(c)
