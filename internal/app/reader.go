@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/kiling91/telegram-email-assistant/internal/email"
 	"github.com/kiling91/telegram-email-assistant/internal/factory"
+	"github.com/kiling91/telegram-email-assistant/internal/printmsg"
 	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 	"github.com/sirupsen/logrus"
 )
@@ -26,55 +28,22 @@ func NewReader(fact factory.Factory, userIds []int64, imapUser *email.ImapUser) 
 	}
 }
 
-func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID int64) {
+func (r *Reader) sendPrintMsg(fmsg *printmsg.FormattedMsg, userId int64) {
 	b := r.fact.Bot()
-	imap := r.fact.ImapEmail()
-	pnt := r.fact.PrintMsg()
-	login := r.fact.Config().Imap.Login
-	storage := r.fact.Storage()
-	// ⌛ Reading a mail from {fromEmail}
-	// ⏳ Reading a mail from {fromEmail} ({seconds} sec)
-	// ⌛ Reading a mail from {fromEmail} ({seconds} sec)
 
-	from, err := storage.GetMsgFromAddress(r.imapUser.Login, msgUID)
-	if err != nil {
-		logrus.Warnf("error get msg info: %v", err)
-		return
-	}
-
-	edit, err := b.Send(userId, fmt.Sprintf("⌛ Reading a mail from %s", from))
-
-	if err != nil {
-		logrus.Warnf("error send msg to user %d", userId)
-		return
-	}
-
-	msg, err := imap.ReadEmail(ctx, r.imapUser, msgUID)
-	if err != nil {
-		logrus.Warnf("error read msg #%d: %v", msgUID, err)
-		return
-	}
-
-	fmsg, err := pnt.PrintMsgWithBody(msg, login)
-	if err != nil {
-		logrus.Warnf("error print msg #%d: %v", msgUID, err)
-		return
-	}
-
-	b.Delete(edit)
 	if fmsg.Img != "" {
 		_, err := b.SendPhoto(userId, &bot.Photo{
 			Filename: fmsg.Img,
 			Caption:  fmsg.Text,
 		})
 		if err != nil {
-			logrus.Warnf("error send photo #%d: %v", msgUID, err)
+			logrus.Warnf("error send photo: %v", err)
 			return
 		}
 	} else {
 		_, err := b.Send(userId, fmsg.Text)
 		if err != nil {
-			logrus.Warnf("error send photo #%d: %v", msgUID, err)
+			logrus.Warnf("error send photo: %v", err)
 			return
 		}
 	}
@@ -82,10 +51,74 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 	for _, attach := range fmsg.Attachment {
 		err := b.SendDocument(userId, attach)
 		if err != nil {
-			logrus.Warnf("error send document #%d: %v", msgUID, err)
+			logrus.Warnf("error send document: %v", err)
 			return
 		}
 	}
+}
+
+func (r *Reader) startReadProgress(ctx context.Context, userId int64, msgUID int64, end <-chan bool) {
+	b := r.fact.Bot()
+
+	storage := r.fact.Storage()
+	from, err := storage.GetMsgFromAddress(r.imapUser.Login, msgUID)
+	if err != nil {
+		logrus.Warnf("error get msg info: %v", err)
+		return
+	}
+	edit, err := b.Send(userId, fmt.Sprintf("⌛ Reading a mail from %s", from))
+	if err != nil {
+		logrus.Warnf("error send msg to user %d", userId)
+		return
+	}
+	go func() {
+		second := 0
+		for {
+			timer := time.NewTimer(time.Second)
+			select {
+			case <-ctx.Done():
+				return
+			case <-end:
+				b.Delete(edit)
+				return
+			case <-timer.C:
+				second++
+				if second%2 == 0 {
+					b.Edit(edit, fmt.Sprintf("⏳ Reading a mail from %s (%dsec)", from, second))
+				} else {
+					b.Edit(edit, fmt.Sprintf("⌛ Reading a mail from %s (%dsec)", from, second))
+				}
+			}
+		}
+	}()
+}
+
+func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID int64) {
+
+	imap := r.fact.ImapEmail()
+	pnt := r.fact.PrintMsg()
+	login := r.fact.Config().Imap.Login
+
+	end := make(chan bool)
+
+	// Send start read
+	r.startReadProgress(ctx, userId, msgUID, end)
+
+	// Start read
+	msg, err := imap.ReadEmail(ctx, r.imapUser, msgUID)
+	if err != nil {
+		logrus.Warnf("error read msg #%d: %v", msgUID, err)
+		return
+	}
+	fmsg, err := pnt.PrintMsgWithBody(msg, login)
+	if err != nil {
+		logrus.Warnf("error print msg #%d: %v", msgUID, err)
+		return
+	}
+
+	end <- true
+	// Send result
+	r.sendPrintMsg(fmsg, userId)
 }
 
 func (r *Reader) onButton(ctx context.Context, btnCtx bot.BtnContext) error {

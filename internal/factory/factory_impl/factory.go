@@ -8,7 +8,7 @@ import (
 	"github.com/kiling91/telegram-email-assistant/internal/printmsg"
 	telegrammsg "github.com/kiling91/telegram-email-assistant/internal/printmsg/telegram_msg"
 	"github.com/kiling91/telegram-email-assistant/internal/storage"
-	"github.com/kiling91/telegram-email-assistant/internal/storage/sqlitestorage"
+	sqlitestorage "github.com/kiling91/telegram-email-assistant/internal/storage/sqlite_storage"
 	"github.com/kiling91/telegram-email-assistant/pkg/bot"
 	"github.com/kiling91/telegram-email-assistant/pkg/bot/tgbot"
 	"github.com/sirupsen/logrus"
