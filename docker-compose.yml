@@ -2,8 +2,10 @@ version: "3.7"
 
 services:
   telegram_email_assistant:
-    image: kiling91/telegram-email-assistant:0.1.13
+    image: kiling91/telegram-email-assistant:0.1.16
     container_name: "telegram_email_assistant"
+    environment:
+      - TZ=Europe/Moscow
     volumes:
       - $PWD/configs/config.yml:/configs/config.yml
       - ~/volumes/telegram-email-assistant:/data

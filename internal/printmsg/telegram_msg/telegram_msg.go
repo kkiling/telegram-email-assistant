@@ -32,7 +32,7 @@ func (s *service) PrintMsgEnvelope(msg *email.MessageEnvelope) string {
 		result += fmt.Sprintf("<b>📨 %s</b>\n\n", msg.FromAddress)
 	}
 
-	result += fmt.Sprintf("⏰ <b>%s</b>\n\n", msg.Date.Format("2006-01-02 15:04"))
+	result += fmt.Sprintf("⏰ <b>%s</b>\n\n", msg.Date.Local().Format("2006-01-02 15:04"))
 	result += fmt.Sprintf("📝 <b>%s</b>\n\n", msg.Subject)
 
 	return result
