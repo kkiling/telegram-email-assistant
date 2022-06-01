@@ -31,11 +31,18 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 	imap := r.fact.ImapEmail()
 	pnt := r.fact.PrintMsg()
 	login := r.fact.Config().Imap.Login
+	storage := r.fact.Storage()
 	// ⌛ Reading a mail from {fromEmail}
 	// ⏳ Reading a mail from {fromEmail} ({seconds} sec)
 	// ⌛ Reading a mail from {fromEmail} ({seconds} sec)
-	edit, err := b.Send(userId, fmt.Sprintf("⌛ Reading a mail from id:%d", msgUID))
-	defer b.Delete(edit)
+
+	from, err := storage.GetMsgFromAddress(r.imapUser.Login, msgUID)
+	if err != nil {
+		logrus.Warnf("error get msg info: %v", err)
+		return
+	}
+
+	edit, err := b.Send(userId, fmt.Sprintf("⌛ Reading a mail from %s", from))
 
 	if err != nil {
 		logrus.Warnf("error send msg to user %d", userId)
@@ -54,6 +61,7 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 		return
 	}
 
+	b.Delete(edit)
 	if fmsg.Img != "" {
 		_, err := b.SendPhoto(userId, &bot.Photo{
 			Filename: fmsg.Img,
@@ -112,14 +120,19 @@ func (r *Reader) Start(ctx context.Context) {
 	})
 
 	for _, e := range emails {
-		if contains, err := storage.MsgIdContains(r.imapUser.Login, e.Uid); err != nil {
-			logrus.Warnf("error get msg contains from storage: %v", err)
-		} else if contains {
-			continue
+		if err := storage.SaveMsgInfo(r.imapUser.Login, e); err != nil {
+			logrus.Warnf("error save msg info: %v", err)
 		}
+
 		sid := strconv.FormatUint(uint64(e.Uid), 10)
 		msg := pnt.PrintMsgEnvelope(e)
 		for _, id := range r.userIds {
+			if contains, err := storage.MsgWasSentToBotUser(r.imapUser.Login, e.Uid, id); err != nil {
+				logrus.Warnf("error get msg contains from storage: %v", err)
+			} else if contains {
+				continue
+			}
+
 			inline := bot.NewInline(2, func(bc bot.BtnContext) error {
 				return r.onButton(ctx, bc)
 			})
@@ -128,7 +141,7 @@ func (r *Reader) Start(ctx context.Context) {
 			if _, err := b.Send(id, msg, inline); err != nil {
 				logrus.Warnf("error send msg: %v", err)
 			} else {
-				if err := storage.SaveMsgId(r.imapUser.Login, e.Uid); err != nil {
+				if err := storage.SaveMsgSentToBotUser(r.imapUser.Login, e.Uid, id); err != nil {
 					logrus.Warnf("error save msg id to storage: %v", err)
 				}
 			}

@@ -49,7 +49,7 @@ func (s *service) needDrawHtml(msg *email.Message) bool {
 		return true
 	}
 
-	if len(msg.Body.TextPlain) > cfg.App.MaxTextMessageSize {
+	if len([]rune(msg.Body.TextPlain)) > cfg.App.MaxTextMessageSize {
 		return true
 	}
 
