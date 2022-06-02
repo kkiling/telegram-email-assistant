@@ -74,7 +74,7 @@ func (r *Reader) startReadProgress(ctx context.Context, userId int64, msgUID int
 	go func() {
 		second := 0
 		for {
-			timer := time.NewTimer(time.Second)
+			timer := time.NewTimer(10 * time.Second)
 			select {
 			case <-ctx.Done():
 				return
@@ -94,12 +94,15 @@ func (r *Reader) startReadProgress(ctx context.Context, userId int64, msgUID int
 }
 
 func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID int64) {
-
 	imap := r.fact.ImapEmail()
 	pnt := r.fact.PrintMsg()
 	login := r.fact.Config().Imap.Login
 
 	end := make(chan bool)
+	defer func() {
+		end <- true
+		close(end)
+	}()
 
 	// Send start read
 	r.startReadProgress(ctx, userId, msgUID, end)
@@ -108,17 +111,15 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 	msg, err := imap.ReadEmail(ctx, r.imapUser, msgUID)
 	if err != nil {
 		logrus.Errorf("error read msg #%d: %v", msgUID, err)
-		end <- true
-		return
-	}
-	fmsg, err := pnt.PrintMsgWithBody(msg, login)
-	if err != nil {
-		logrus.Errorf("error print msg #%d: %v", msgUID, err)
-		end <- true
 		return
 	}
 
-	end <- true
+	fmsg, err := pnt.PrintMsgWithBody(msg, login)
+	if err != nil {
+		logrus.Errorf("error print msg #%d: %v", msgUID, err)
+		return
+	}
+
 	// Send result
 	r.sendPrintMsg(fmsg, userId)
 }
