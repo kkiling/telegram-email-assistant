@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const progressTimeout = 10
+
 type Reader struct {
 	fact     factory.Factory
 	userIds  []int64
@@ -57,11 +59,11 @@ func (r *Reader) sendPrintMsg(fmsg *printmsg.FormattedMsg, userId int64) {
 	}
 }
 
-func (r *Reader) startReadProgress(ctx context.Context, userId int64, msgUID int64, end <-chan bool) {
+func (r *Reader) startReadProgress(ctx context.Context, userId int64, seqNum int64, end <-chan bool) {
 	b := r.fact.Bot()
 
 	storage := r.fact.Storage()
-	from, err := storage.GetMsgFromAddress(r.imapUser.Login, msgUID)
+	from, err := storage.GetMsgFromAddress(r.imapUser.Login, seqNum)
 	if err != nil {
 		logrus.Errorf("error get msg info: %v", err)
 		return
@@ -72,9 +74,9 @@ func (r *Reader) startReadProgress(ctx context.Context, userId int64, msgUID int
 		return
 	}
 	go func() {
-		second := 0
+		counter := 0
 		for {
-			timer := time.NewTimer(10 * time.Second)
+			timer := time.NewTimer(progressTimeout * time.Second)
 			select {
 			case <-ctx.Done():
 				return
@@ -82,18 +84,18 @@ func (r *Reader) startReadProgress(ctx context.Context, userId int64, msgUID int
 				b.Delete(edit)
 				return
 			case <-timer.C:
-				second++
-				if second%2 == 0 {
-					b.Edit(edit, fmt.Sprintf("⏳ Reading a mail from %s (%dsec)", from, second))
+				counter += 1
+				if counter%2 == 0 {
+					b.Edit(edit, fmt.Sprintf("⏳ Reading a mail from %s (%dsec)", from, counter*progressTimeout))
 				} else {
-					b.Edit(edit, fmt.Sprintf("⌛ Reading a mail from %s (%dsec)", from, second))
+					b.Edit(edit, fmt.Sprintf("⌛ Reading a mail from %s (%dsec)", from, counter*progressTimeout))
 				}
 			}
 		}
 	}()
 }
 
-func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID int64) {
+func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, seqNum int64) {
 	imap := r.fact.ImapEmail()
 	pnt := r.fact.PrintMsg()
 	login := r.fact.Config().Imap.Login
@@ -105,18 +107,18 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 	}()
 
 	// Send start read
-	r.startReadProgress(ctx, userId, msgUID, end)
+	r.startReadProgress(ctx, userId, seqNum, end)
 
 	// Start read
-	msg, err := imap.ReadEmail(ctx, r.imapUser, msgUID)
+	msg, err := imap.ReadEmail(ctx, r.imapUser, seqNum)
 	if err != nil {
-		logrus.Errorf("error read msg #%d: %v", msgUID, err)
+		logrus.Errorf("error read msg #%d: %v", seqNum, err)
 		return
 	}
 
 	fmsg, err := pnt.PrintMsgWithBody(msg, login)
 	if err != nil {
-		logrus.Errorf("error print msg #%d: %v", msgUID, err)
+		logrus.Errorf("error print msg #%d: %v", seqNum, err)
 		return
 	}
 
@@ -125,14 +127,14 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, msgUID in
 }
 
 func (r *Reader) onButton(ctx context.Context, btnCtx bot.BtnContext) error {
-	msgUID, err := strconv.ParseInt(btnCtx.Data(), 10, 32)
+	seqNum, err := strconv.ParseInt(btnCtx.Data(), 10, 32)
 	if err != nil {
 		logrus.Errorf("err parse string to int64: %v", err)
 	}
 	switch btnCtx.Unique() {
 	case BtnMark:
 	case BtnRead:
-		go r.startReadEmailBody(ctx, btnCtx.UserId(), msgUID)
+		go r.startReadEmailBody(ctx, btnCtx.UserId(), seqNum)
 	default:
 		logrus.Errorf("unknow btn type %s", btnCtx.Unique())
 	}
@@ -160,10 +162,10 @@ func (r *Reader) Start(ctx context.Context) {
 			logrus.Errorf("error save msg info: %v", err)
 		}
 
-		sid := strconv.FormatUint(uint64(e.Uid), 10)
+		sid := strconv.FormatUint(uint64(e.SeqNum), 10)
 		msg := pnt.PrintMsgEnvelope(e)
 		for _, id := range r.userIds {
-			if contains, err := storage.MsgWasSentToBotUser(r.imapUser.Login, e.Uid, id); err != nil {
+			if contains, err := storage.MsgWasSentToBotUser(r.imapUser.Login, e.SeqNum, id); err != nil {
 				logrus.Errorf("error get msg contains from storage: %v", err)
 			} else if contains {
 				continue
@@ -177,7 +179,7 @@ func (r *Reader) Start(ctx context.Context) {
 			if _, err := b.Send(id, msg, inline); err != nil {
 				logrus.Errorf("error send msg: %v", err)
 			} else {
-				if err := storage.SaveMsgSentToBotUser(r.imapUser.Login, e.Uid, id); err != nil {
+				if err := storage.SaveMsgSentToBotUser(r.imapUser.Login, e.SeqNum, id); err != nil {
 					logrus.Errorf("error save msg id to storage: %v", err)
 				}
 			}

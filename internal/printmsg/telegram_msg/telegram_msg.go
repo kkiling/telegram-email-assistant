@@ -67,7 +67,7 @@ func (s *service) PrintMsgWithBody(msg *email.Message, user string) (*printmsg.F
 
 	if s.needDrawHtml(msg) {
 		cfg := s.fact.Config()
-		dir, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, msg.Uid)
+		dir, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, msg.Envelope.SeqNum)
 		if err != nil {
 			return nil, err
 		}

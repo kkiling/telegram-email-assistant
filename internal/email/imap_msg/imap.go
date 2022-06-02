@@ -51,35 +51,35 @@ func (s *service) getUnseenEmails(client *client.Client) ([]uint32, error) {
 
 	criteria := imap.NewSearchCriteria()
 	criteria.WithoutFlags = []string{"\\Seen"}
-	UIDs, err := client.UidSearch(criteria)
+	seqNums, err := client.Search(criteria)
 	if err != nil {
 		return nil, fmt.Errorf("error search mail: %w", err)
 	}
 
-	return UIDs, nil
+	return seqNums, nil
 }
 
-func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) ([]*email.MessageEnvelope, error) {
+func (s *service) readEmailEnvelope(client *client.Client, seqNums ...uint32) ([]*email.MessageEnvelope, error) {
 	result := make([]*email.MessageEnvelope, 0)
-	if len(uids) == 0 {
+	if len(seqNums) == 0 {
 		return result, nil
 	}
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(uids...)
+	seqSet.AddNum(seqNums...)
 
-	items := []imap.FetchItem{imap.FetchEnvelope, imap.FetchUid}
+	items := []imap.FetchItem{imap.FetchEnvelope}
 
 	messages := make(chan *imap.Message, 10)
 	done := make(chan error, 1)
 	go func() {
-		done <- client.UidFetch(seqSet, items, messages)
+		done <- client.Fetch(seqSet, items, messages)
 	}()
 
 	for msg := range messages {
 		from := msg.Envelope.From[0]
 		to := msg.Envelope.To[0]
 		result = append(result, &email.MessageEnvelope{
-			Uid:         int64(msg.Uid),
+			SeqNum:      int64(msg.SeqNum),
 			Date:        msg.Envelope.Date,
 			Subject:     msg.Envelope.Subject,
 			FromAddress: from.MailboxName + from.HostName,
@@ -96,9 +96,9 @@ func (s *service) readEmailEnvelope(client *client.Client, uids ...uint32) ([]*e
 	return result, nil
 }
 
-func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID int64) (string, error) {
+func (s *service) saveFile(fileName string, body io.Reader, user string, seqNum int64) (string, error) {
 	cfg := s.fact.Config()
-	newPath, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, msgUID)
+	newPath, err := common.CreateFolderForEmail(cfg.App.FileDirectory, user, seqNum)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +113,7 @@ func (s *service) saveFile(fileName string, body io.Reader, user string, msgUID 
 	return filePath, nil
 }
 
-func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user string, msgUID int64) (*email.MessageBody, error) {
+func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user string, seqNum int64) (*email.MessageBody, error) {
 
 	msgBody := email.MessageBody{
 		TextHtml:        "",
@@ -157,9 +157,9 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 					}
 
 					if attachmentId == "" {
-						logrus.Errorf("msgUID: %d - inline attachmentId is empty", msgUID)
+						logrus.Errorf("seqNum: %d - inline attachmentId is empty", seqNum)
 					} else {
-						filePath, err := s.saveFile(attachmentId, p.Body, user, msgUID)
+						filePath, err := s.saveFile(attachmentId, p.Body, user, seqNum)
 						if err != nil {
 							return nil, err
 						}
@@ -183,9 +183,9 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 			}
 
 			if fileName == "" {
-				logrus.Warnf("msgUID: %d - attachment fileName is empty", msgUID)
+				logrus.Warnf("seqNum: %d - attachment fileName is empty", seqNum)
 			} else {
-				filePath, err := s.saveFile(fileName, p.Body, user, msgUID)
+				filePath, err := s.saveFile(fileName, p.Body, user, seqNum)
 				if err != nil {
 					return nil, err
 				}
@@ -200,9 +200,9 @@ func (s *service) processReadBody(_ context.Context, mr *mail.Reader, user strin
 	return &msgBody, nil
 }
 
-func (s *service) processReadEnvelope(uid int64, mr *mail.Reader) (*email.MessageEnvelope, error) {
+func (s *service) processReadEnvelope(seqNum int64, mr *mail.Reader) (*email.MessageEnvelope, error) {
 	msgEnvelope := email.MessageEnvelope{
-		Uid: uid,
+		SeqNum: seqNum,
 	}
 
 	// Print some info about the message
@@ -236,7 +236,7 @@ func (s *service) processReadEnvelope(uid int64, mr *mail.Reader) (*email.Messag
 	return &msgEnvelope, nil
 }
 
-func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, msgUID int64) (*email.Message, error) {
+func (s *service) readEmailBody(ctx context.Context, client *client.Client, user string, seqNum int64) (*email.Message, error) {
 	// Select INBOX
 	mbox, err := client.Select("INBOX", false)
 	if err != nil {
@@ -250,14 +250,15 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 
 	// Select msg by uid
 	seqSet := new(imap.SeqSet)
-	seqSet.AddNum(uint32(msgUID))
+	seqSet.AddNum(uint32(seqNum))
 
 	// Get the whole message body
 	var section imap.BodySectionName
-	items := []imap.FetchItem{imap.FetchUid, section.FetchItem()}
+	items := []imap.FetchItem{section.FetchItem()}
 
 	messages := make(chan *imap.Message, 1)
-	if err := client.UidFetch(seqSet, items, messages); err != nil {
+
+	if err := client.Fetch(seqSet, items, messages); err != nil {
 		return nil, fmt.Errorf("error fetch email: %w", err)
 	}
 
@@ -277,18 +278,17 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 		return nil, fmt.Errorf("error create reader: %w", err)
 	}
 
-	msgEnvelope, err := s.processReadEnvelope(int64(msg.Uid), mr)
+	msgEnvelope, err := s.processReadEnvelope(int64(msg.SeqNum), mr)
 	if err != nil {
 		return nil, err
 	}
 
-	msgBody, err := s.processReadBody(ctx, mr, user, msgUID)
+	msgBody, err := s.processReadBody(ctx, mr, user, seqNum)
 	if err != nil {
 		return nil, err
 	}
 
 	return &email.Message{
-		Uid:      int64(msg.Uid),
 		Envelope: msgEnvelope,
 		Body:     msgBody,
 	}, nil
@@ -309,12 +309,12 @@ func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]*
 	}(c)
 
 	// Select INBOX
-	UIDs, err := s.getUnseenEmails(c)
+	seqNums, err := s.getUnseenEmails(c)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.readEmailEnvelope(c, UIDs...)
+	result, err := s.readEmailEnvelope(c, seqNums...)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +322,7 @@ func (s *service) ReadUnseenEmails(_ context.Context, user *email.ImapUser) ([]*
 	return result, nil
 }
 
-func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, msgUID int64) (*email.Message, error) {
+func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, seqNum int64) (*email.Message, error) {
 	c, err := s.login(user)
 	defer func(c *client.Client) {
 		err := c.Logout()
@@ -335,5 +335,5 @@ func (s *service) ReadEmail(ctx context.Context, user *email.ImapUser, msgUID in
 		return nil, err
 	}
 
-	return s.readEmailBody(ctx, c, user.Login, msgUID)
+	return s.readEmailBody(ctx, c, user.Login, seqNum)
 }

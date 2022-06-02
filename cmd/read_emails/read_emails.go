@@ -34,18 +34,18 @@ func main() {
 	for _, e := range emails {
 		start := time.Now()
 
-		msg, err := imap.ReadEmail(context.Background(), user, e.Uid)
+		msg, err := imap.ReadEmail(context.Background(), user, e.SeqNum)
 		if err != nil {
-			logrus.Fatalf("Error read #%d", e.Uid)
+			logrus.Fatalf("Error read #%d", e.SeqNum)
 		}
 
 		pnt := fact.PrintMsg()
 		_, err = pnt.PrintMsgWithBody(msg, user.Login)
 		if err != nil {
-			logrus.Fatalf("Error read #%d", e.Uid)
+			logrus.Fatalf("Error read #%d", e.SeqNum)
 		}
 
 		elapsed := time.Since(start)
-		logrus.Printf("#%d - %s %s (%fs)", e.Uid, e.FromAddress, e.Subject, elapsed.Seconds())
+		logrus.Printf("#%d - %s %s (%fs)", e.SeqNum, e.FromAddress, e.Subject, elapsed.Seconds())
 	}
 }

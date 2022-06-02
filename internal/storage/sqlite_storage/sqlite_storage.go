@@ -27,16 +27,16 @@ func NewSqliteStorage(fact factory.Factory) (storage.Storage, error) {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS sent_messages(
 		id INTEGER PRIMARY KEY AUTOINCREMENT, 
 		email TEXT,
-		msgUid INTEGER,
+		seqNum INTEGER,
 		botUserUid INTEGER,
-		UNIQUE (email,msgUid,botUserUid)
+		UNIQUE (email,seqNum,botUserUid)
 	  );`)
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx
-		ON sent_messages (email,msgUid,botUserUid);`)
+		ON sent_messages (email,seqNum,botUserUid);`)
 	if err != nil {
 		return nil, err
 	}
@@ -44,16 +44,16 @@ func NewSqliteStorage(fact factory.Factory) (storage.Storage, error) {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS email_info(
 		id INTEGER PRIMARY KEY AUTOINCREMENT, 
 		email TEXT,
-		msgUid INTEGER,
+		seqNum INTEGER,
 		fromAddress TEXT,
-		UNIQUE (email,msgUid,fromAddress)
+		UNIQUE (email,seqNum,fromAddress)
 	  );`)
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx
-		ON email_info (email,msgUid);`)
+		ON email_info (email,seqNum);`)
 	if err != nil {
 		return nil, err
 	}
@@ -64,23 +64,23 @@ func NewSqliteStorage(fact factory.Factory) (storage.Storage, error) {
 	}, nil
 }
 
-func (s *service) SaveMsgSentToBotUser(email string, msgUid int64, botUserUid int64) error {
-	if contains, err := s.MsgWasSentToBotUser(email, msgUid, botUserUid); err != nil {
+func (s *service) SaveMsgSentToBotUser(email string, seqNum int64, botUserUid int64) error {
+	if contains, err := s.MsgWasSentToBotUser(email, seqNum, botUserUid); err != nil {
 		return err
 	} else if contains {
 		return nil
 	}
-	_, err := s.db.Exec(`INSERT INTO sent_messages (email, msgUid, botUserUid) values ($1, $2, $3);`,
-		email, msgUid, botUserUid)
+	_, err := s.db.Exec(`INSERT INTO sent_messages (email, seqNum, botUserUid) values ($1, $2, $3);`,
+		email, seqNum, botUserUid)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *service) MsgWasSentToBotUser(email string, msgUid int64, botUserUid int64) (bool, error) {
-	rows, err := s.db.Query("SELECT COUNT(*) FROM sent_messages WHERE email=$1 AND msgUid=$2 AND botUserUid=$3;",
-		email, msgUid, botUserUid)
+func (s *service) MsgWasSentToBotUser(email string, seqNum int64, botUserUid int64) (bool, error) {
+	rows, err := s.db.Query("SELECT COUNT(*) FROM sent_messages WHERE email=$1 AND seqNum=$2 AND botUserUid=$3;",
+		email, seqNum, botUserUid)
 	if err != nil {
 		return false, err
 	}
@@ -96,25 +96,25 @@ func (s *service) MsgWasSentToBotUser(email string, msgUid int64, botUserUid int
 }
 
 func (s *service) SaveMsgInfo(email string, msg *email.MessageEnvelope) error {
-	from, _ := s.GetMsgFromAddress(email, msg.Uid)
+	from, _ := s.GetMsgFromAddress(email, msg.SeqNum)
 	if from != "" {
 		return nil
 	}
 
-	_, err := s.db.Exec(`INSERT INTO email_info (email, msgUid, fromAddress) values ($1, $2, $3);`,
-		email, msg.Uid, msg.FromAddress)
+	_, err := s.db.Exec(`INSERT INTO email_info (email, seqNum, fromAddress) values ($1, $2, $3);`,
+		email, msg.SeqNum, msg.FromAddress)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *service) GetMsgFromAddress(email string, msgUid int64) (string, error) {
-	sqlStatement := `SELECT fromAddress FROM email_info WHERE email=$1 AND msgUid=$2;`
+func (s *service) GetMsgFromAddress(email string, seqNum int64) (string, error) {
+	sqlStatement := `SELECT fromAddress FROM email_info WHERE email=$1 AND seqNum=$2;`
 
 	// Replace 3 with an ID from your database or another random
 	// value to test the no rows use case.
-	row := s.db.QueryRow(sqlStatement, email, msgUid)
+	row := s.db.QueryRow(sqlStatement, email, seqNum)
 
 	var fromAddress string
 	switch err := row.Scan(&fromAddress); err {
