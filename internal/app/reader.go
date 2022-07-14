@@ -158,7 +158,7 @@ func (r *Reader) onButton(ctx context.Context, btnCtx bot.BtnContext) error {
 	return nil
 }
 
-func (r *Reader) Start(ctx context.Context) {
+func (r *Reader) Read(ctx context.Context) {
 	logrus.Infof("Start read unseen emails %s", r.imapUser.Login)
 	imap := r.fact.ImapEmail()
 	b := r.fact.Bot()
@@ -167,7 +167,7 @@ func (r *Reader) Start(ctx context.Context) {
 
 	emails, err := imap.ReadUnseenEmails(ctx, r.imapUser)
 	if err != nil {
-		logrus.Fatalln(err)
+		logrus.Errorln(err)
 	}
 
 	sort.Slice(emails, func(i, j int) bool {

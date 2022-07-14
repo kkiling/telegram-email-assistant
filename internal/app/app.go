@@ -98,7 +98,7 @@ func (a *App) readEmailsLoop(ctx context.Context) {
 		case <-timer.C:
 			for _, reader := range readers {
 				// TODO: Convert to groutins
-				reader.Start(ctx)
+				reader.Read(ctx)
 			}
 		}
 	}

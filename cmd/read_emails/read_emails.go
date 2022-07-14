@@ -24,7 +24,6 @@ func main() {
 	emails, err := imap.ReadUnseenEmails(context.Background(), user)
 	if err != nil {
 		logrus.Fatalln(err)
-
 	}
 
 	sort.Slice(emails, func(i, j int) bool {
