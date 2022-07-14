@@ -21,14 +21,19 @@ type Imap struct {
 	Password   string `yaml:"password"`
 }
 
+type TelegramUser struct {
+	UserId    int64    `yaml:"user_id"`
+	ImapLogin []string `yaml:"imap_login"`
+}
+
 type Telegram struct {
-	BotToken       string  `yaml:"bot_token"`
-	AllowedUserIds []int64 `yaml:"allowed_user_id"`
+	BotToken string         `yaml:"bot_token"`
+	Users    []TelegramUser `yaml:"users"`
 }
 
 type Config struct {
 	App      App      `yaml:"app"`
-	Imap     Imap     `yaml:"imap"`
+	Imap     []Imap   `yaml:"imap"`
 	Telegram Telegram `yaml:"telegram"`
 }
 

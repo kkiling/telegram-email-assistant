@@ -1,14 +1,24 @@
 app:
   file_directory: ""
+  store_db: "~/store.db"
   max_text_message_size: 64
   mail_check_timeout: 60
 
 imap:
-  imap_server: "imap.yandex.ru:993"
-  login: ""
-  password: ""
+  - login: ""
+    imap_server: "imap.gmail.com:993"
+    password: ""
+  - login: ""
+    imap_server: "imap.yandex.ru:993"
+    password: ""
+  - login: ""
+    imap_server: "imap.mail.ru:993"
+    password: ""
 
 telegram:
   bot_token: ""
-  allowed_user_id:
-    - 550550
+  users:
+    - user_id: 12345678
+      imap_login:
+        - "@gmail.com"
+        - "@bk.ru"

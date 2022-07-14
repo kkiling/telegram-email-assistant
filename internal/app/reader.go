@@ -98,7 +98,6 @@ func (r *Reader) startReadProgress(ctx context.Context, userId int64, seqNum int
 func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, seqNum int64) {
 	imap := r.fact.ImapEmail()
 	pnt := r.fact.PrintMsg()
-	login := r.fact.Config().Imap.Login
 
 	end := make(chan bool)
 	defer func() {
@@ -116,7 +115,7 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, seqNum in
 		return
 	}
 
-	fmsg, err := pnt.PrintMsgWithBody(msg, login)
+	fmsg, err := pnt.PrintMsgWithBody(msg, r.imapUser.Login)
 	if err != nil {
 		logrus.Errorf("error print msg #%d: %v", seqNum, err)
 		return
@@ -142,7 +141,7 @@ func (r *Reader) onButton(ctx context.Context, btnCtx bot.BtnContext) error {
 }
 
 func (r *Reader) Start(ctx context.Context) {
-	logrus.Info("Start read unseen emails")
+	logrus.Infof("Start read unseen emails %s", r.imapUser.Login)
 	imap := r.fact.ImapEmail()
 	b := r.fact.Bot()
 	pnt := r.fact.PrintMsg()
