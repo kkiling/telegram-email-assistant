@@ -259,7 +259,7 @@ func (s *service) readEmailBody(ctx context.Context, client *client.Client, user
 	messages := make(chan *imap.Message, 1)
 
 	if err := client.Fetch(seqSet, items, messages); err != nil {
-		return nil, fmt.Errorf("error fetch email: %w", err)
+		return nil, err
 	}
 
 	msg := <-messages

@@ -94,10 +94,19 @@ func (r *Reader) startReadProgress(ctx context.Context, userId int64, seqNum int
 		}
 	}()
 }
+func (r *Reader) startMarkReadEmail(ctx context.Context, userId int64, seqNum int64) {
+	b := r.fact.Bot()
+	_, err := b.Send(userId, "function not implemented")
+	if err != nil {
+		logrus.Errorf("error send msg to user %d", userId)
+		return
+	}
+}
 
 func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, seqNum int64) {
 	imap := r.fact.ImapEmail()
 	pnt := r.fact.PrintMsg()
+	b := r.fact.Bot()
 
 	end := make(chan bool)
 	defer func() {
@@ -111,13 +120,21 @@ func (r *Reader) startReadEmailBody(ctx context.Context, userId int64, seqNum in
 	// Start read
 	msg, err := imap.ReadEmail(ctx, r.imapUser, seqNum)
 	if err != nil {
-		logrus.Errorf("error read msg #%d: %v", seqNum, err)
+		logrus.Error(err)
+		_, err := b.Send(userId, fmt.Sprintf("❗error read email: %v", err))
+		if err != nil {
+			logrus.Errorf("error send msg to user %d", userId)
+		}
 		return
 	}
 
 	fmsg, err := pnt.PrintMsgWithBody(msg, r.imapUser.Login)
 	if err != nil {
-		logrus.Errorf("error print msg #%d: %v", seqNum, err)
+		logrus.Error(err)
+		_, err := b.Send(userId, fmt.Sprintf("❗error print email: %v", err))
+		if err != nil {
+			logrus.Errorf("error send msg to user %d", userId)
+		}
 		return
 	}
 
@@ -132,6 +149,7 @@ func (r *Reader) onButton(ctx context.Context, btnCtx bot.BtnContext) error {
 	}
 	switch btnCtx.Unique() {
 	case BtnMark:
+		go r.startMarkReadEmail(ctx, btnCtx.UserId(), seqNum)
 	case BtnRead:
 		go r.startReadEmailBody(ctx, btnCtx.UserId(), seqNum)
 	default:

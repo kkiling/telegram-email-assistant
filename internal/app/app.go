@@ -113,9 +113,9 @@ func (a *App) startCommand() {
 		}
 
 		msg := "✌ Hey! I am your personal email assistant.\n"
-		msg += fmt.Sprintf("📧 I will send notifications of new email in your mailbox:")
+		msg += "📧 I will send notifications of new email in your mailbox:\n"
 		for _, login := range a.users[ctx.UserId()] {
-			msg += fmt.Sprintf("\t - %s", login)
+			msg += fmt.Sprintf("\t - %s\n", login)
 		}
 		_, err := b.Send(ctx.UserId(), msg)
 		return err
